@@ -782,7 +782,7 @@ VOID DirectDraw::RenderNew()
 									{
 										GLuint paletteId = textures[0];
 										GLuint indicesId = textures[1];
-										GLuint textureId = textures[3];
+										GLuint textureId = textures[2];
 
 										GLActiveTexture(GL_TEXTURE1);
 										GLBindTexture(GL_TEXTURE_1D, paletteId);

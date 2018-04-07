@@ -96,6 +96,9 @@ typedef char GLchar;
 
 #define GL_SHARED_TEXTURE_PALETTE_EXT 0x81FB
 
+#define ERROR_INVALID_VERSION_ARB 0x2095
+#define ERROR_INVALID_PROFILE_ARB 0x2096
+
 typedef PROC(__stdcall *WGLGETPROCADDRESS)(LPCSTR name);
 typedef BOOL(__stdcall *WGLMAKECURRENT)(HDC devContext, HGLRC glContext);
 typedef HGLRC(__stdcall *WGLCREATECONTEXT)(HDC devContext);
@@ -244,15 +247,13 @@ extern BOOL glCapsSharedPalette;
 
 namespace GL
 {
-	BOOL LoadRenderModule();
+	BOOL __fastcall Load();
 
-	VOID FreeRenderModule();
+	VOID __fastcall Free();
 
 	VOID CreateContextAttribs(HDC devContext, HGLRC* glContext);
 
 	BOOL PreparePixelFormat(PIXELFORMATDESCRIPTOR* pfd, DWORD* pixelFormat, HWND hWnd);
 
 	GLuint __fastcall CompileShaderSource(const GLchar* source, GLenum type, HWND hWnd);
-
-	//GLuint __fastcall CompileShaderResource(DWORD name, GLenum shaderType, HWND hWnd);
 }

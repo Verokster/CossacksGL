@@ -161,6 +161,7 @@
     <ClCompile Include="DllMain.cpp" />
     <ClCompile Include="FpsCounter.cpp" />
     <ClCompile Include="GLib.cpp" />
+    <ClCompile Include="Hooks.cpp" />
     <ClCompile Include="ShaderSource.cpp" />
     <ClCompile Include="StdAfx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -175,6 +176,7 @@
     <ClInclude Include="ExtraTypes.h" />
     <ClInclude Include="FpsCounter.h" />
     <ClInclude Include="GLib.h" />
+    <ClInclude Include="Hooks.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="ShaderSource.h" />
     <ClInclude Include="StdAfx.h" />

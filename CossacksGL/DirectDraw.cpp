@@ -1079,6 +1079,8 @@ DWORD __fastcall AddDisplayMode(DEVMODE* devMode)
 
 DirectDraw::DirectDraw(DirectDraw* lastObj)
 {
+	GL::Load();
+
 	this->last = lastObj;
 
 	this->dwMode = NULL;

@@ -22,39 +22,11 @@
 	SOFTWARE.
 */
 
-#include "stdafx.h"
-#include "ShaderSource.h"
+#pragma once
 
-const GLchar* shVertexSoure =
-"#version 130\n"
-"precision lowp float;"
-"uniform mat4 mvp;"
-"in vec4 vCoord;"
-"in vec2 vTexCoord;"
-"out vec2 fTexCoord;"
-"void main() {"
-	"gl_Position = mvp * vec4(vCoord.xy, 0.0, 1.0);"
-	"fTexCoord = vTexCoord;"
-"}";
+namespace Hooks
+{
+	VOID __fastcall Load(HMODULE hModule);
 
-const GLchar* shFragmentFullscreen =
-"#version 130\n"
-"precision lowp float;"
-"uniform sampler2D tex01;"
-"uniform sampler1D pal01;"
-"in vec2 fTexCoord;"
-"out vec4 fragColor;"
-"void main(void) {"
-	"float index = texture(tex01, fTexCoord).x;"
-	"fragColor = texture(pal01, index);"
-"}";
-
-const GLchar* shFragmentWindowed = 
-"#version 130\n"
-"precision lowp float;"
-"uniform sampler2D tex01;"
-"in vec2 fTexCoord;"
-"out vec4 fragColor;"
-"void main(void) {"
-	"fragColor = texture(tex01, fTexCoord);"
-"}";
+	VOID __fastcall Free();
+}

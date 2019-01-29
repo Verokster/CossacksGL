@@ -1,3 +1,0 @@
-LIBRARY	"MDRAW"
-EXPORTS
-	DirectDrawCreate			= ?DirectDrawCreate@Main@@YGJPAU_GUID@@PAPAUIDirectDraw@@PAUIUnknown@@@Z

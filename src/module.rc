@@ -27,6 +27,7 @@ BEGIN
     POPUP "&Window"
     BEGIN
         MENUITEM "&Full Screen\aAlt+Enter",		IDM_WINDOW_FULLSCREEN
+		MENUITEM "Enable VSync",				IDM_WINDOW_VSYNC
         MENUITEM "FPS &Counter\aAlt+F",			IDM_WINDOW_FPSCOUNTER
 		MENUITEM SEPARATOR
 		MENUITEM "&Mouse Capture\aAlt+M",		IDM_WINDOW_MOUSECAPTURE
@@ -54,7 +55,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP
 FONT 8, "System", 0, 0, 0x1
 BEGIN
     CTEXT           "Cossacks && American Conquest\nOpenGL Wrapper",1002,0,6,162,18
-    CTEXT           "Version 2.02   Build 114",IDC_STATIC,0,30,162,8
+    CTEXT           "Version 2.03   Build 117",IDC_STATIC,0,30,162,8
     CTEXT           "Copyright © 2019 Verok",1006,0,48,162,8
 	DEFPUSHBUTTON   "OK",IDOK,65,72,32,14,WS_GROUP
 	CONTROL         "verokster@gmail.com",IDC_LNK_EMAIL,"SysLink",WS_TABSTOP,48,57,72,12
@@ -67,8 +68,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2019,1,31,114
- PRODUCTVERSION 2,0,2,0
+ FILEVERSION 2019,1,31,117
+ PRODUCTVERSION 2,0,3,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS VS_FF_DEBUG
@@ -84,7 +85,7 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "FileDescription", "Cossacks OpenGL wrapper"
-            VALUE "FileVersion", "2019.01.31.114"
+            VALUE "FileVersion", "2019.01.31.117"
             VALUE "LegalCopyright", "© 2019 Verok (verokster@gmail.com)"
             VALUE "OriginalFilename", "dplayx.dll"
             VALUE "ProductVersion", "2.0.2"

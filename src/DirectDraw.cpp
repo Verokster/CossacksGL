@@ -69,6 +69,10 @@ HHOOK OldMouseHook;
 VOID CheckMenu()
 {
 	CheckMenuItem(config.menu, IDM_WINDOW_FULLSCREEN, MF_BYCOMMAND | (!config.windowedMode ? MF_CHECKED : MF_UNCHECKED));
+	
+	EnableMenuItem(config.menu, IDM_WINDOW_VSYNC, MF_BYCOMMAND | (glVersion && WGLSwapInterval ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)));
+	CheckMenuItem(config.menu, IDM_WINDOW_VSYNC, MF_BYCOMMAND | (glVersion && WGLSwapInterval && config.vSync ? MF_CHECKED : MF_UNCHECKED));
+	
 	CheckMenuItem(config.menu, IDM_WINDOW_FPSCOUNTER, MF_BYCOMMAND | (config.fpsCounter ? MF_CHECKED : MF_UNCHECKED));
 	CheckMenuItem(config.menu, IDM_WINDOW_MOUSECAPTURE, MF_BYCOMMAND | (config.mouseCapture ? MF_CHECKED : MF_UNCHECKED));
 	CheckMenuItem(config.menu, IDM_IMAGE_FILTERING, MF_BYCOMMAND | (config.filtering ? MF_CHECKED : MF_UNCHECKED));
@@ -310,6 +314,15 @@ LRESULT __stdcall WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 			else
 				config.windowedMode = !config.windowedMode;
+
+			return NULL;
+		}
+
+		case IDM_WINDOW_VSYNC:
+		{
+			config.vSync = !config.vSync;
+			Config::Set(CONFIG, "VSync", config.vSync);
+			CheckMenu();
 
 			return NULL;
 		}
@@ -593,6 +606,7 @@ DWORD __stdcall RenderThread(LPVOID lpParameter)
 						glVersion = GL_VER_1_1;
 				}
 
+				CheckMenu();
 				if (glVersion >= GL_VER_2_0)
 					ddraw->RenderNew();
 				else
@@ -693,10 +707,34 @@ VOID DirectDraw::RenderOld()
 
 			FpsCounter* fpsCounter = new FpsCounter(FPS_ACCURACY);
 			{
+				BOOL isVSync = FALSE;
+				if (WGLSwapInterval)
+					WGLSwapInterval(0);
+
 				do
 				{
 					if (this->dwMode->bpp == 8 || !mciVideo.deviceId)
 					{
+						if (WGLSwapInterval)
+						{
+							if (!isVSync)
+							{
+								if (config.vSync)
+								{
+									isVSync = TRUE;
+									WGLSwapInterval(1);
+								}
+							}
+							else
+							{
+								if (!config.vSync)
+								{
+									isVSync = FALSE;
+									WGLSwapInterval(0);
+								}
+							}
+						}
+
 						this->CheckView();
 
 						if (this->isStateChanged)
@@ -888,6 +926,8 @@ VOID DirectDraw::RenderOld()
 						}
 
 						SwapBuffers(this->hDc);
+						if (isVSync)
+							GLFinish();
 
 						if (this->isTakeSnapshot)
 						{
@@ -1039,6 +1079,10 @@ VOID DirectDraw::RenderNew()
 
 				FpsCounter* fpsCounter = new FpsCounter(FPS_ACCURACY);
 				{
+					BOOL isVSync = FALSE;
+					if (WGLSwapInterval)
+						WGLSwapInterval(0);
+
 					if (this->dwMode->bpp == 8)
 					{
 						GLuint textures[2];
@@ -1071,6 +1115,26 @@ VOID DirectDraw::RenderNew()
 							{
 								do
 								{
+									if (WGLSwapInterval)
+									{
+										if (!isVSync)
+										{
+											if (config.vSync)
+											{
+												isVSync = TRUE;
+												WGLSwapInterval(1);
+											}
+										}
+										else
+										{
+											if (!config.vSync)
+											{
+												isVSync = FALSE;
+												WGLSwapInterval(0);
+											}
+										}
+									}
+
 									if (config.fpsCounter)
 									{
 										if (isFpsChanged)
@@ -1159,6 +1223,8 @@ VOID DirectDraw::RenderNew()
 
 									GLDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 									SwapBuffers(this->hDc);
+									if (isVSync)
+										GLFinish();
 
 									if (this->isTakeSnapshot)
 									{
@@ -1202,6 +1268,26 @@ VOID DirectDraw::RenderNew()
 								}
 								else
 								{
+									if (WGLSwapInterval)
+									{
+										if (!isVSync)
+										{
+											if (config.vSync)
+											{
+												isVSync = TRUE;
+												WGLSwapInterval(1);
+											}
+										}
+										else
+										{
+											if (!config.vSync)
+											{
+												isVSync = FALSE;
+												WGLSwapInterval(0);
+											}
+										}
+									}
+
 									this->CheckView();
 
 									if (this->isStateChanged)
@@ -1216,6 +1302,8 @@ VOID DirectDraw::RenderNew()
 
 									GLDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 									SwapBuffers(this->hDc);
+									if (isVSync)
+										GLFinish();
 
 									if (this->isTakeSnapshot)
 									{
@@ -1339,8 +1427,6 @@ VOID DirectDraw::RenderStart()
 			hDllModule,
 			NULL);
 	}
-
-	DWORD err = GetLastError();
 
 	OldPanelProc = (WNDPROC)SetWindowLongPtr(this->hDraw, GWLP_WNDPROC, (LONG_PTR)PanelProc);
 
@@ -1669,7 +1755,7 @@ HRESULT DirectDraw::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceD
 	}
 
 	return DD_OK;
-	}
+}
 
 HRESULT DirectDraw::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP)
 {

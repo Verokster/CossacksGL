@@ -56,6 +56,9 @@ namespace Config
 			config.windowedMode = TRUE;
 			Config::Set(CONFIG, "WindowedMode", config.windowedMode);
 
+			config.vSync = FALSE;
+			Config::Set(CONFIG, "VSync", config.vSync);
+
 			config.fpsCounter = FALSE;
 			Config::Set(CONFIG, "FpsCounter", config.fpsCounter);
 
@@ -71,6 +74,7 @@ namespace Config
 		else
 		{
 			config.windowedMode = (BOOL)Config::Get(CONFIG, "WindowedMode", TRUE);
+			config.vSync = (BOOL)Config::Get(CONFIG, "VSync", FALSE);
 			config.fpsCounter = (BOOL)Config::Get(CONFIG, "FpsCounter", FALSE);
 			config.filtering = (BOOL)Config::Get(CONFIG, "Filtering", TRUE);
 			config.aspectRatio = (BOOL)Config::Get(CONFIG, "AspectRatio", TRUE);

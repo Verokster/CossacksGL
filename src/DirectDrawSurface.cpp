@@ -26,14 +26,9 @@
 #include "GLib.h"
 #include "DirectDrawSurface.h"
 #include "DirectDraw.h"
-#include "DirectDrawInterface.h"
 
 #pragma region Not Implemented
-HRESULT DirectDrawSurface::QueryInterface(REFIID riid, LPVOID* ppvObj)
-{
-	*ppvObj = new DirectDrawInterface();
-	return DD_OK;
-}
+HRESULT DirectDrawSurface::QueryInterface(REFIID, LPVOID*) { return DD_OK; }
 ULONG DirectDrawSurface::AddRef() { return 0; }
 HRESULT DirectDrawSurface::AddAttachedSurface(LPDIRECTDRAWSURFACE) { return DD_OK; }
 HRESULT DirectDrawSurface::AddOverlayDirtyRect(LPRECT) { return DD_OK; }
@@ -44,14 +39,14 @@ HRESULT DirectDrawSurface::DeleteAttachedSurface(DWORD, LPDIRECTDRAWSURFACE) { r
 HRESULT DirectDrawSurface::EnumAttachedSurfaces(LPVOID, LPDDENUMSURFACESCALLBACK) { return DD_OK; }
 HRESULT DirectDrawSurface::EnumOverlayZOrders(DWORD, LPVOID, LPDDENUMSURFACESCALLBACK) { return DD_OK; }
 HRESULT DirectDrawSurface::Flip(LPDIRECTDRAWSURFACE, DWORD) { return DD_OK; }
-HRESULT DirectDrawSurface::GetAttachedSurface(LPDDSCAPS, LPDIRECTDRAWSURFACE *) { return DD_OK; }
+HRESULT DirectDrawSurface::GetAttachedSurface(LPDDSCAPS, LPDIRECTDRAWSURFACE*) { return DD_OK; }
 HRESULT DirectDrawSurface::GetBltStatus(DWORD) { return DD_OK; }
 HRESULT DirectDrawSurface::GetCaps(LPDDSCAPS) { return DD_OK; }
-HRESULT DirectDrawSurface::GetClipper(LPDIRECTDRAWCLIPPER *) { return DD_OK; }
+HRESULT DirectDrawSurface::GetClipper(LPDIRECTDRAWCLIPPER*) { return DD_OK; }
 HRESULT DirectDrawSurface::GetColorKey(DWORD, LPDDCOLORKEY) { return DD_OK; }
 HRESULT DirectDrawSurface::GetFlipStatus(DWORD) { return DD_OK; }
 HRESULT DirectDrawSurface::GetOverlayPosition(LPLONG, LPLONG) { return DD_OK; }
-HRESULT DirectDrawSurface::GetPalette(LPDIRECTDRAWPALETTE *) { return DD_OK; }
+HRESULT DirectDrawSurface::GetPalette(LPDIRECTDRAWPALETTE*) { return DD_OK; }
 HRESULT DirectDrawSurface::GetSurfaceDesc(LPDDSURFACEDESC) { return DD_OK; }
 HRESULT DirectDrawSurface::Initialize(LPDIRECTDRAW, LPDDSURFACEDESC) { return DD_OK; }
 HRESULT DirectDrawSurface::IsLost() { return DD_OK; }
@@ -66,12 +61,10 @@ HRESULT DirectDrawSurface::UpdateOverlayDisplay(DWORD) { return DD_OK; }
 HRESULT DirectDrawSurface::UpdateOverlayZOrder(DWORD, LPDIRECTDRAWSURFACE) { return DD_OK; }
 #pragma endregion
 
-
 HRESULT DirectDrawSurface::GetPixelFormat(LPDDPIXELFORMAT lpDDPixelFormat)
 {
-	DWORD size = lpDDPixelFormat->dwSize;
-	MemoryZero(lpDDPixelFormat, size);
-	lpDDPixelFormat->dwSize = size;
+	MemoryZero(lpDDPixelFormat, sizeof(DDPIXELFORMAT));
+	lpDDPixelFormat->dwSize = sizeof(DDPIXELFORMAT);
 
 	lpDDPixelFormat->dwRGBBitCount = 32;
 	lpDDPixelFormat->dwRBitMask = 0x000000FF;

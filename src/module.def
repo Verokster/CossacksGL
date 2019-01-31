@@ -1,13 +1,13 @@
 LIBRARY	"DPLAYX"
 EXPORTS
-	DirectPlayCreate				= ?exDirectPlayCreate@@YGXXZ
-	DirectPlayEnumerateA			= ?exDirectPlayEnumerateA@@YGXXZ
-	DirectPlayEnumerateW			= ?exDirectPlayEnumerateW@@YGXXZ
-	DirectPlayLobbyCreateA			= ?exDirectPlayLobbyCreateA@@YGXXZ
-	DirectPlayLobbyCreateW			= ?exDirectPlayLobbyCreateW@@YGXXZ
-	DllCanUnloadNow					= ?exDllCanUnloadNow@@YGXXZ
-	DllGetClassObject				= ?exDllGetClassObject@@YGXXZ
-	DllRegisterServer				= ?exDllRegisterServer@@YGXXZ
-	DirectPlayEnumerate				= ?exDirectPlayEnumerate@@YGXXZ
-	DllUnregisterServer				= ?exDllUnregisterServer@@YGXXZ
-	gdwDPlaySPRefCount				= ?exGdwDPlaySPRefCount@@YGXXZ
+	DirectPlayCreate			= ?exDirectPlayCreate@@YGXXZ			PRIVATE
+	DirectPlayEnumerateA		= ?exDirectPlayEnumerateA@@YGXXZ		PRIVATE
+	DirectPlayEnumerateW		= ?exDirectPlayEnumerateW@@YGXXZ		PRIVATE
+	DirectPlayLobbyCreateA		= ?exDirectPlayLobbyCreateA@@YGXXZ		PRIVATE
+	DirectPlayLobbyCreateW		= ?exDirectPlayLobbyCreateW@@YGXXZ		PRIVATE
+	DllCanUnloadNow				= ?exDllCanUnloadNow@@YGXXZ				PRIVATE
+	DllGetClassObject			= ?exDllGetClassObject@@YGXXZ			PRIVATE
+	DllRegisterServer			= ?exDllRegisterServer@@YGXXZ			PRIVATE
+	DirectPlayEnumerate			= ?exDirectPlayEnumerate@@YGXXZ			PRIVATE
+	DllUnregisterServer			= ?exDllUnregisterServer@@YGXXZ			PRIVATE
+	gdwDPlaySPRefCount			= ?exGdwDPlaySPRefCount@@YGXXZ			PRIVATE

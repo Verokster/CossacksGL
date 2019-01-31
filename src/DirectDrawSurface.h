@@ -38,7 +38,7 @@ public:
 	~DirectDrawSurface();
 
 	// Inherited via IDirectDrawSurface
-	HRESULT __stdcall QueryInterface(REFIID riid, LPVOID * ppvObj);
+	HRESULT __stdcall QueryInterface(REFIID, LPVOID*);
 	ULONG __stdcall AddRef();
 	ULONG __stdcall Release();
 	HRESULT __stdcall AddAttachedSurface(LPDIRECTDRAWSURFACE);
@@ -50,15 +50,15 @@ public:
 	HRESULT __stdcall EnumAttachedSurfaces(LPVOID, LPDDENUMSURFACESCALLBACK);
 	HRESULT __stdcall EnumOverlayZOrders(DWORD, LPVOID, LPDDENUMSURFACESCALLBACK);
 	HRESULT __stdcall Flip(LPDIRECTDRAWSURFACE, DWORD);
-	HRESULT __stdcall GetAttachedSurface(LPDDSCAPS, LPDIRECTDRAWSURFACE *);
+	HRESULT __stdcall GetAttachedSurface(LPDDSCAPS, LPDIRECTDRAWSURFACE*);
 	HRESULT __stdcall GetBltStatus(DWORD);
 	HRESULT __stdcall GetCaps(LPDDSCAPS);
-	HRESULT __stdcall GetClipper(LPDIRECTDRAWCLIPPER *);
+	HRESULT __stdcall GetClipper(LPDIRECTDRAWCLIPPER*);
 	HRESULT __stdcall GetColorKey(DWORD, LPDDCOLORKEY);
-	HRESULT __stdcall GetDC(HDC *);
+	HRESULT __stdcall GetDC(HDC*);
 	HRESULT __stdcall GetFlipStatus(DWORD);
 	HRESULT __stdcall GetOverlayPosition(LPLONG, LPLONG);
-	HRESULT __stdcall GetPalette(LPDIRECTDRAWPALETTE *);
+	HRESULT __stdcall GetPalette(LPDIRECTDRAWPALETTE*);
 	HRESULT __stdcall GetPixelFormat(LPDDPIXELFORMAT);
 	HRESULT __stdcall GetSurfaceDesc(LPDDSURFACEDESC);
 	HRESULT __stdcall Initialize(LPDIRECTDRAW, LPDDSURFACEDESC);

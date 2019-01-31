@@ -76,25 +76,25 @@ public:
 	VOID RenderNew();
 
 	// Inherited via  IDirectDraw
-	HRESULT __stdcall QueryInterface(REFIID riid, LPVOID * ppvObj);
+	HRESULT __stdcall QueryInterface(REFIID, LPVOID*);
 	ULONG __stdcall AddRef();
 	ULONG __stdcall Release();
 	HRESULT __stdcall Compact();
-	HRESULT __stdcall CreateClipper(DWORD, LPDIRECTDRAWCLIPPER *, IUnknown *);
-	HRESULT __stdcall CreatePalette(DWORD, LPPALETTEENTRY, LPDIRECTDRAWPALETTE *, IUnknown *);
-	HRESULT __stdcall CreateSurface(LPDDSURFACEDESC, LPDIRECTDRAWSURFACE *, IUnknown *);
-	HRESULT __stdcall DuplicateSurface(LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE *);
+	HRESULT __stdcall CreateClipper(DWORD, LPDIRECTDRAWCLIPPER*, IUnknown*);
+	HRESULT __stdcall CreatePalette(DWORD, LPPALETTEENTRY, LPDIRECTDRAWPALETTE*, IUnknown*);
+	HRESULT __stdcall CreateSurface(LPDDSURFACEDESC, LPDIRECTDRAWSURFACE*, IUnknown*);
+	HRESULT __stdcall DuplicateSurface(LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE*);
 	HRESULT __stdcall EnumDisplayModes(DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMMODESCALLBACK);
 	HRESULT __stdcall EnumSurfaces(DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMSURFACESCALLBACK);
 	HRESULT __stdcall FlipToGDISurface();
 	HRESULT __stdcall GetCaps(LPDDCAPS, LPDDCAPS);
 	HRESULT __stdcall GetDisplayMode(LPDDSURFACEDESC);
 	HRESULT __stdcall GetFourCCCodes(LPDWORD, LPDWORD);
-	HRESULT __stdcall GetGDISurface(LPDIRECTDRAWSURFACE *);
+	HRESULT __stdcall GetGDISurface(LPDIRECTDRAWSURFACE*);
 	HRESULT __stdcall GetMonitorFrequency(LPDWORD);
 	HRESULT __stdcall GetScanLine(LPDWORD);
 	HRESULT __stdcall GetVerticalBlankStatus(LPBOOL);
-	HRESULT __stdcall Initialize(GUID *);
+	HRESULT __stdcall Initialize(GUID*);
 	HRESULT __stdcall RestoreDisplayMode();
 	HRESULT __stdcall SetCooperativeLevel(HWND, DWORD);
 	HRESULT __stdcall SetDisplayMode(DWORD, DWORD, DWORD);

@@ -26,13 +26,12 @@
 #include "DirectDraw.h"
 
 #pragma region Not Implemented
-HRESULT DirectDrawPalette::QueryInterface(REFIID riid, LPVOID * ppvObj) { return DD_OK; }
+HRESULT DirectDrawPalette::QueryInterface(REFIID, LPVOID*) { return DD_OK; }
 ULONG DirectDrawPalette::AddRef() { return 0; }
 HRESULT DirectDrawPalette::GetCaps(LPDWORD) { return DD_OK; }
 HRESULT DirectDrawPalette::GetEntries(DWORD, DWORD, DWORD, LPPALETTEENTRY) { return DD_OK; }
 HRESULT DirectDrawPalette::Initialize(LPDIRECTDRAW, DWORD, LPPALETTEENTRY) { return DD_OK; }
 #pragma endregion
-
 
 ULONG DirectDrawPalette::Release()
 {

@@ -33,31 +33,26 @@
 #include "Hooks.h"
 #include "DirectDraw.h"
 #include "DirectDrawSurface.h"
-#include "DirectDrawInterface.h"
 #include "FpsCounter.h"
 
 #pragma region Not Implemented
+HRESULT DirectDraw::QueryInterface(REFIID, LPVOID*) { return DD_OK; }
 ULONG DirectDraw::AddRef() { return 0; }
 HRESULT DirectDraw::Compact() { return DD_OK; }
-HRESULT DirectDraw::CreateClipper(DWORD, LPDIRECTDRAWCLIPPER *, IUnknown *) { return DD_OK; }
+HRESULT DirectDraw::CreateClipper(DWORD, LPDIRECTDRAWCLIPPER*, IUnknown*) { return DD_OK; }
 HRESULT DirectDraw::EnumSurfaces(DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMSURFACESCALLBACK) { return DD_OK; }
 HRESULT DirectDraw::FlipToGDISurface(void) { return DD_OK; }
 HRESULT DirectDraw::GetCaps(LPDDCAPS, LPDDCAPS) { return DD_OK; }
 HRESULT DirectDraw::GetDisplayMode(LPDDSURFACEDESC) { return DD_OK; }
 HRESULT DirectDraw::GetFourCCCodes(LPDWORD, LPDWORD) { return DD_OK; }
-HRESULT DirectDraw::GetGDISurface(LPDIRECTDRAWSURFACE *) { return DD_OK; }
+HRESULT DirectDraw::GetGDISurface(LPDIRECTDRAWSURFACE*) { return DD_OK; }
 HRESULT DirectDraw::GetMonitorFrequency(LPDWORD) { return DD_OK; }
 HRESULT DirectDraw::GetScanLine(LPDWORD) { return DD_OK; }
 HRESULT DirectDraw::GetVerticalBlankStatus(LPBOOL) { return DD_OK; }
-HRESULT DirectDraw::Initialize(GUID *) { return DD_OK; }
+HRESULT DirectDraw::Initialize(GUID*) { return DD_OK; }
 HRESULT DirectDraw::RestoreDisplayMode() { return DD_OK; }
-HRESULT DirectDraw::DuplicateSurface(LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE *) { return DD_OK; }
+HRESULT DirectDraw::DuplicateSurface(LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE*) { return DD_OK; }
 HRESULT DirectDraw::WaitForVerticalBlank(DWORD, HANDLE) { return DD_OK; }
-HRESULT DirectDraw::QueryInterface(REFIID riid, LPVOID* ppvObj) {
-	//IID_IDirectDraw2
-	*ppvObj = new DirectDrawInterface();
-	return DD_OK;
-}
 #pragma endregion
 
 #define RECOUNT 32 
@@ -581,7 +576,7 @@ DWORD __stdcall RenderThread(LPVOID lpParameter)
 		HGLRC hRc = WGLCreateContext(ddraw->hDc);
 		if (hRc)
 		{
-			WGLMakeCurrent(ddraw->hDc, hRc);
+			if (WGLMakeCurrent(ddraw->hDc, hRc))
 			{
 				GL::CreateContextAttribs(ddraw->hDc, &hRc);
 				if (glVersion >= GL_VER_3_0)
@@ -623,10 +618,9 @@ VOID DirectDraw::RenderOld()
 	if (glMaxTexSize < 256)
 		glMaxTexSize = 256;
 
-	DWORD minSize = this->dwMode->width < this->dwMode->height ? this->dwMode->width : this->dwMode->height;
-
+	DWORD size = this->dwMode->width > this->dwMode->height ? this->dwMode->width : this->dwMode->height;
 	DWORD maxAllow = 1;
-	while (maxAllow < minSize)
+	while (maxAllow < size)
 		maxAllow <<= 1;
 
 	DWORD maxTexSize = maxAllow < glMaxTexSize ? maxAllow : glMaxTexSize;
@@ -676,7 +670,7 @@ VOID DirectDraw::RenderOld()
 
 					GLTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
-					if (GLColorTable)
+					if (this->dwMode->bpp == 8 && GLColorTable)
 						GLTexImage2D(GL_TEXTURE_2D, 0, GL_COLOR_INDEX8_EXT, maxTexSize, maxTexSize, GL_NONE, GL_COLOR_INDEX, GL_UNSIGNED_BYTE, NULL);
 					else
 						GLTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, maxTexSize, maxTexSize, GL_NONE, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
@@ -771,7 +765,7 @@ VOID DirectDraw::RenderOld()
 
 											for (DWORD y = 0; y < FPS_HEIGHT; ++y)
 											{
-												BYTE* pix = (BYTE*)pixelBuffer + (FPS_Y + y) * (maxTexSize)+
+												BYTE* pix = (BYTE*)pixelBuffer + (FPS_Y + y) * frame->rect.width +
 													FPS_X + (FPS_STEP + FPS_WIDTH) * (dcount - 1) + FPS_STEP;
 
 												DWORD width = FPS_WIDTH;
@@ -819,7 +813,7 @@ VOID DirectDraw::RenderOld()
 
 											for (DWORD y = 0; y < FPS_HEIGHT; ++y)
 											{
-												DWORD* pix = (DWORD*)pixelBuffer + (FPS_Y + y) * maxTexSize +
+												DWORD* pix = (DWORD*)pixelBuffer + (FPS_Y + y) * frame->rect.width +
 													FPS_X + (FPS_STEP + FPS_WIDTH) * (dcount - 1) + FPS_STEP;
 
 												DWORD width = FPS_WIDTH;
@@ -1334,7 +1328,7 @@ VOID DirectDraw::RenderStart()
 	SECURITY_ATTRIBUTES sAttribs;
 	MemoryZero(&sAttribs, sizeof(SECURITY_ATTRIBUTES));
 	sAttribs.nLength = sizeof(SECURITY_ATTRIBUTES);
-	this->hDrawThread = CreateThread(&sAttribs, NULL, RenderThread, this, ABOVE_NORMAL_PRIORITY_CLASS, &threadId);
+	this->hDrawThread = CreateThread(&sAttribs, NULL, RenderThread, this, NORMAL_PRIORITY_CLASS, &threadId);
 }
 
 VOID DirectDraw::RenderStop()

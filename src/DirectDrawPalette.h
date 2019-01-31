@@ -35,7 +35,7 @@ public:
 	DirectDrawPalette(LPDIRECTDRAW, DirectDrawPalette*);
 
 	// Inherited via IDirectDrawPalette
-	HRESULT __stdcall QueryInterface(REFIID riid, LPVOID * ppvObj);
+	HRESULT __stdcall QueryInterface(REFIID, LPVOID*);
 	ULONG __stdcall AddRef();
 	ULONG __stdcall Release();
 	HRESULT __stdcall GetCaps(LPDWORD);

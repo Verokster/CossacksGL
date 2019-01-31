@@ -16,16 +16,10 @@
     <ClCompile Include="FpsCounter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Hooks.cpp">
-      <Filter>Source Files\Hooks</Filter>
-    </ClCompile>
     <ClCompile Include="Allocation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DirectDraw.cpp">
-      <Filter>Source Files\Draw</Filter>
-    </ClCompile>
-    <ClCompile Include="DirectDrawInterface.cpp">
       <Filter>Source Files\Draw</Filter>
     </ClCompile>
     <ClCompile Include="DirectDrawPalette.cpp">
@@ -35,6 +29,9 @@
       <Filter>Source Files\Draw</Filter>
     </ClCompile>
     <ClCompile Include="Config.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooks.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -66,9 +63,6 @@
     <ClInclude Include="DirectDraw.h">
       <Filter>Header Files\Draw</Filter>
     </ClInclude>
-    <ClInclude Include="DirectDrawInterface.h">
-      <Filter>Header Files\Draw</Filter>
-    </ClInclude>
     <ClInclude Include="DirectDrawPalette.h">
       <Filter>Header Files\Draw</Filter>
     </ClInclude>
@@ -88,9 +82,6 @@
     </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{b48440de-744c-470c-835a-b1527d1c4325}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\Hooks">
-      <UniqueIdentifier>{03b8651a-63d2-4427-8cad-22d49315525d}</UniqueIdentifier>
     </Filter>
     <Filter Include="Header Files\Draw">
       <UniqueIdentifier>{2588983f-4a03-4f00-a002-955945c3d1f5}</UniqueIdentifier>

@@ -179,15 +179,9 @@ namespace Hooks
 		return ReadBlock(addr, value, sizeof(*value));
 	}
 
-	DWORD __fastcall PatchFunction(MappedFile* lpFile, const CHAR* function, VOID* addr)
+	DWORD __fastcall PatchFunction(MappedFile* file, const CHAR* function, VOID* addr)
 	{
 		DWORD res = NULL;
-
-		MappedFile file;
-		if (lpFile)
-			file = *lpFile;
-		else
-			MemoryZero(&file, sizeof(MappedFile));
 
 		DWORD base = (DWORD)headDOS;
 		PIMAGE_NT_HEADERS headNT = (PIMAGE_NT_HEADERS)((BYTE*)base + headDOS->e_lfanew);
@@ -206,30 +200,30 @@ namespace Hooks
 					nameThunk = (PIMAGE_THUNK_DATA)(base + imports->OriginalFirstThunk);
 				else
 				{
-					if (!file.hFile)
+					if (!file->hFile)
 					{
 						CHAR filePath[MAX_PATH];
 						GetModuleFileName((HMODULE)headDOS, filePath, MAX_PATH);
-						file.hFile = CreateFile(filePath, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-						if (!file.hFile)
-							goto Exit;
+						file->hFile = CreateFile(filePath, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+						if (!file->hFile)
+							return res;
 					}
 
-					if (!file.hMap)
+					if (!file->hMap)
 					{
-						file.hMap = CreateFileMapping(file.hFile, NULL, PAGE_READONLY, 0, 0, NULL);
-						if (!file.hMap)
-							goto Exit;
+						file->hMap = CreateFileMapping(file->hFile, NULL, PAGE_READONLY, 0, 0, NULL);
+						if (!file->hMap)
+							return res;
 					}
 
-					if (!file.address)
+					if (!file->address)
 					{
-						file.address = MapViewOfFile(file.hMap, FILE_MAP_READ, 0, 0, 0);;
-						if (!file.address)
-							goto Exit;
+						file->address = MapViewOfFile(file->hMap, FILE_MAP_READ, 0, 0, 0);;
+						if (!file->address)
+							return res;
 					}
 
-					headNT = (PIMAGE_NT_HEADERS)((BYTE*)file.address + ((PIMAGE_DOS_HEADER)file.address)->e_lfanew);
+					headNT = (PIMAGE_NT_HEADERS)((BYTE*)file->address + ((PIMAGE_DOS_HEADER)file->address)->e_lfanew);
 					PIMAGE_SECTION_HEADER sh = (PIMAGE_SECTION_HEADER)((DWORD)&headNT->OptionalHeader + headNT->FileHeader.SizeOfOptionalHeader);
 
 					nameThunk = NULL;
@@ -238,7 +232,7 @@ namespace Hooks
 					{
 						if (imports->FirstThunk >= sh->VirtualAddress && imports->FirstThunk < sh->VirtualAddress + sh->Misc.VirtualSize)
 						{
-							nameThunk = PIMAGE_THUNK_DATA((DWORD)file.address + sh->PointerToRawData + imports->FirstThunk - sh->VirtualAddress);
+							nameThunk = PIMAGE_THUNK_DATA((DWORD)file->address + sh->PointerToRawData + imports->FirstThunk - sh->VirtualAddress);
 							break;
 						}
 
@@ -246,7 +240,7 @@ namespace Hooks
 					}
 
 					if (!nameThunk)
-						goto Exit;
+						return res;
 				}
 
 				for (; nameThunk->u1.AddressOfData; ++nameThunk, ++addressThunk)
@@ -259,25 +253,10 @@ namespace Hooks
 						if (ReadDWord((INT)&addressThunk->u1.AddressOfData - baseOffset, &res))
 							PatchDWord((INT)&addressThunk->u1.AddressOfData - baseOffset, (DWORD)addr);
 
-						goto Exit;
+						return res;
 					}
 				}
 			}
-		}
-
-	Exit:
-		if (lpFile)
-			*lpFile = file;
-		else
-		{
-			if (file.address)
-				UnmapViewOfFile(file.address);
-
-			if (file.hMap)
-				CloseHandle(file.hMap);
-
-			if (file.hFile)
-				CloseHandle(file.hFile);
 		}
 
 		return res;

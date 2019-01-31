@@ -22,13 +22,13 @@
 	SOFTWARE.
 */
 
-#include "stdafx.h"
-#include "DirectDrawInterface.h"
+#version 110
 
-HRESULT DirectDrawInterface::QueryInterface(REFIID riid, LPVOID* ppvObj) { return E_NOTIMPL; }
-ULONG DirectDrawInterface::AddRef() { return 0; }
-ULONG DirectDrawInterface::Release()
-{
-	delete this;
-	return 0;
+uniform sampler2D tex01;
+uniform sampler1D pal01;
+
+varying vec2 fTexCoord;
+
+void main() {
+	gl_FragColor = texture1D(pal01, texture2D(tex01, fTexCoord).r);
 }

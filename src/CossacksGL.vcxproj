@@ -196,10 +196,18 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="module.def" />
-    <None Include="Shaders\linear.fgl" />
-    <None Include="Shaders\nearest.fgl" />
-    <None Include="Shaders\simple.fgl" />
-    <None Include="Shaders\vertex.vgl" />
+    <None Include="Shaders\110\linear.fgl" />
+    <None Include="Shaders\110\linear.vgl" />
+    <None Include="Shaders\110\nearest.fgl" />
+    <None Include="Shaders\110\nearest.vgl" />
+    <None Include="Shaders\110\simple.fgl" />
+    <None Include="Shaders\110\simple.vgl" />
+    <None Include="Shaders\130\linear.fgl" />
+    <None Include="Shaders\130\linear.vgl" />
+    <None Include="Shaders\130\nearest.fgl" />
+    <None Include="Shaders\130\nearest.vgl" />
+    <None Include="Shaders\130\simple.fgl" />
+    <None Include="Shaders\130\simple.vgl" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="module.manifest" />

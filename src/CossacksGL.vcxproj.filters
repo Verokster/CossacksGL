@@ -92,22 +92,52 @@
     <Filter Include="Resource Files\Shaders Files">
       <UniqueIdentifier>{54f0c6ed-e052-4119-9e1f-c36f66e4badc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files\Shaders Files\110">
+      <UniqueIdentifier>{76813cce-c09e-44da-87a6-fb36e1431fb9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\Shaders Files\130">
+      <UniqueIdentifier>{eca125f4-06ee-4011-8be5-3ecc0b0b133b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="module.def">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="Shaders\vertex.vgl">
-      <Filter>Resource Files\Shaders Files</Filter>
+    <None Include="Shaders\110\linear.fgl">
+      <Filter>Resource Files\Shaders Files\110</Filter>
     </None>
-    <None Include="Shaders\linear.fgl">
-      <Filter>Resource Files\Shaders Files</Filter>
+    <None Include="Shaders\110\nearest.fgl">
+      <Filter>Resource Files\Shaders Files\110</Filter>
     </None>
-    <None Include="Shaders\nearest.fgl">
-      <Filter>Resource Files\Shaders Files</Filter>
+    <None Include="Shaders\110\simple.fgl">
+      <Filter>Resource Files\Shaders Files\110</Filter>
     </None>
-    <None Include="Shaders\simple.fgl">
-      <Filter>Resource Files\Shaders Files</Filter>
+    <None Include="Shaders\130\linear.fgl">
+      <Filter>Resource Files\Shaders Files\130</Filter>
+    </None>
+    <None Include="Shaders\130\nearest.fgl">
+      <Filter>Resource Files\Shaders Files\130</Filter>
+    </None>
+    <None Include="Shaders\130\simple.fgl">
+      <Filter>Resource Files\Shaders Files\130</Filter>
+    </None>
+    <None Include="Shaders\110\linear.vgl">
+      <Filter>Resource Files\Shaders Files\110</Filter>
+    </None>
+    <None Include="Shaders\110\nearest.vgl">
+      <Filter>Resource Files\Shaders Files\110</Filter>
+    </None>
+    <None Include="Shaders\110\simple.vgl">
+      <Filter>Resource Files\Shaders Files\110</Filter>
+    </None>
+    <None Include="Shaders\130\linear.vgl">
+      <Filter>Resource Files\Shaders Files\130</Filter>
+    </None>
+    <None Include="Shaders\130\nearest.vgl">
+      <Filter>Resource Files\Shaders Files\130</Filter>
+    </None>
+    <None Include="Shaders\130\simple.vgl">
+      <Filter>Resource Files\Shaders Files\130</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

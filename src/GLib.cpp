@@ -101,6 +101,7 @@ GLGETATTRIBLOCATION GLGetAttribLocation;
 GLGETUNIFORMLOCATION GLGetUniformLocation;
 
 GLUNIFORM1I GLUniform1i;
+GLUNIFORM2F GLUniform2f;
 GLUNIFORMMATRIX4FV GLUniformMatrix4fv;
 
 HMODULE hGLModule;
@@ -195,7 +196,7 @@ namespace GL
 
 		if (WGLCreateContextAttribs)
 		{
-			if (!GetContext(hDc, hRc, 3, 0, FALSE))
+			if (!GetContext(hDc, hRc, 3, 0, FALSE) && !GetContext(hDc, hRc, 2, 0, FALSE))
 				GetContext(hDc, hRc, 1, 4, TRUE);
 		}
 
@@ -264,6 +265,7 @@ namespace GL
 		LoadFunction(buffer, PREFIX_GL, "GetUniformLocation", (PROC*)&GLGetUniformLocation);
 
 		LoadFunction(buffer, PREFIX_GL, "Uniform1i", (PROC*)&GLUniform1i);
+		LoadFunction(buffer, PREFIX_GL, "Uniform2f", (PROC*)&GLUniform2f);
 		LoadFunction(buffer, PREFIX_GL, "UniformMatrix4fv", (PROC*)&GLUniformMatrix4fv);
 
 		glCapsClampToEdge = GL_CLAMP;

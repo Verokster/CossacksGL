@@ -43,6 +43,7 @@ typedef char GLchar;
 #define GL_VER_1_2 0x01020000
 #define GL_VER_1_3 0x01030000
 #define GL_VER_1_4 0x01040000
+#define GL_VER_2_0 0x02010000
 #define GL_VER_3_0 0x03000000
 
 #define WGL_DRAW_TO_WINDOW_ARB         0x2001
@@ -172,6 +173,7 @@ typedef GLuint(__stdcall *GLGETATTRIBLOCATION)(GLuint program, const GLchar* nam
 typedef GLuint(__stdcall *GLGETUNIFORMLOCATION)(GLuint program, const GLchar* name);
 
 typedef VOID(__stdcall *GLUNIFORM1I)(GLint location, GLint v0);
+typedef VOID(__stdcall *GLUNIFORM2F)(GLint location, GLfloat v0, GLfloat v1);
 typedef GLuint(__stdcall *GLUNIFORMMATRIX4FV)(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
 
 extern WGLGETPROCADDRESS WGLGetProcAddress;
@@ -242,6 +244,7 @@ extern GLGETATTRIBLOCATION GLGetAttribLocation;
 extern GLGETUNIFORMLOCATION GLGetUniformLocation;
 
 extern GLUNIFORM1I GLUniform1i;
+extern GLUNIFORM2F GLUniform2f;
 extern GLUNIFORMMATRIX4FV GLUniformMatrix4fv;
 
 extern DWORD glVersion;

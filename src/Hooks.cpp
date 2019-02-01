@@ -502,6 +502,8 @@ namespace Hooks
 			else
 				mcierr = MciSendCommandOld(mciList[mciId - 1], uMsg, dwParam1, dwParam2);
 
+			mciList[mciId - 1] = NULL;
+
 			break;
 		}
 

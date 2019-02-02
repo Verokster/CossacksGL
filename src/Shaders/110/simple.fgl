@@ -30,4 +30,4 @@ varying vec2 fTexCoord;
 
 void main() {
 	gl_FragColor = texture2D(tex01, fTexCoord);
-};
+}

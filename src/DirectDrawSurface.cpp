@@ -26,9 +26,9 @@
 #include "GLib.h"
 #include "DirectDrawSurface.h"
 #include "DirectDraw.h"
+#include "DirectDrawInterface.h"
 
 #pragma region Not Implemented
-HRESULT DirectDrawSurface::QueryInterface(REFIID, LPVOID*) { return DD_OK; }
 ULONG DirectDrawSurface::AddRef() { return 0; }
 HRESULT DirectDrawSurface::AddAttachedSurface(LPDIRECTDRAWSURFACE) { return DD_OK; }
 HRESULT DirectDrawSurface::AddOverlayDirtyRect(LPRECT) { return DD_OK; }
@@ -60,6 +60,12 @@ HRESULT DirectDrawSurface::UpdateOverlay(LPRECT, LPDIRECTDRAWSURFACE, LPRECT, DW
 HRESULT DirectDrawSurface::UpdateOverlayDisplay(DWORD) { return DD_OK; }
 HRESULT DirectDrawSurface::UpdateOverlayZOrder(DWORD, LPDIRECTDRAWSURFACE) { return DD_OK; }
 #pragma endregion
+
+HRESULT DirectDrawSurface::QueryInterface(REFIID riid, LPVOID* ppvObj)
+{
+	*ppvObj = new DirectDrawInterface();
+	return DD_OK;
+}
 
 HRESULT DirectDrawSurface::GetPixelFormat(LPDDPIXELFORMAT lpDDPixelFormat)
 {

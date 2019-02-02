@@ -166,6 +166,7 @@
     <ClCompile Include="Allocation.cpp" />
     <ClCompile Include="Config.cpp" />
     <ClCompile Include="DirectDraw.cpp" />
+    <ClCompile Include="DirectDrawInterface.cpp" />
     <ClCompile Include="DirectDrawPalette.cpp" />
     <ClCompile Include="DirectDrawSurface.cpp" />
     <ClCompile Include="DllMain.cpp" />
@@ -181,6 +182,7 @@
     <ClInclude Include="Allocation.h" />
     <ClInclude Include="Config.h" />
     <ClInclude Include="DirectDraw.h" />
+    <ClInclude Include="DirectDrawInterface.h" />
     <ClInclude Include="DirectDrawPalette.h" />
     <ClInclude Include="DirectDrawSurface.h" />
     <ClInclude Include="ExtraTypes.h" />

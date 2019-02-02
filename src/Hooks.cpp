@@ -578,6 +578,14 @@ namespace Hooks
 
 	BOOL __stdcall ClientToScreenHook(HWND hWnd, LPPOINT lpPoint) { return TRUE; }
 
+	FARPROC __stdcall GetProcAddressHook(HMODULE hModule, LPCSTR lpProcName)
+	{
+		if (!StrCompare(lpProcName, "DirectDrawCreate"))
+			return (FARPROC)Main::DirectDrawCreate;
+		else
+			return GetProcAddress(hModule, lpProcName);
+	}
+
 	VOID Load()
 	{
 		headDOS = (PIMAGE_DOS_HEADER)GetModuleHandle(NULL);
@@ -599,6 +607,7 @@ namespace Hooks
 			PatchFunction(&file, "SetCursorPos", SetCursorPosHook);
 			PatchFunction(&file, "MessageBoxA", MessageBoxHook);
 			PatchFunction(&file, "ClientToScreen", ClientToScreenHook);
+			PatchFunction(&file, "GetProcAddress", GetProcAddressHook);
 		}
 
 		if (file.address)

@@ -22,42 +22,14 @@
 	SOFTWARE.
 */
 
+#include "Allocation.h"
+
 #pragma once
-#define FPS_X 0
-#define FPS_Y 4
-#define FPS_WIDTH 14
-#define FPS_HEIGHT 24
-#define FPS_STEP 4
-#define FPS_COUNT 120
-#define FPS_ACCURACY 2000
-
-extern BOOL isFpsChanged;
-
-extern const bool counters[10][FPS_HEIGHT][FPS_WIDTH];
-
-struct FrameItem
+class DirectDrawInterface : IUnknown, public Allocation
 {
-	DWORD tick;
-	DWORD span;
-};
-
-class FpsCounter : public Allocation
-{
-private:
-	DWORD accuracy;
-	DWORD count;
-	DWORD checkIndex;
-	DWORD currentIndex;
-	DWORD summary;
-	DWORD lastTick;
-	FrameItem* tickQueue;
-
 public:
-	DWORD value;
-
-	FpsCounter(DWORD accuracy);
-	~FpsCounter();
-
-	VOID Reset();
-	VOID Calculate();
+	HRESULT __stdcall QueryInterface(REFIID, LPVOID*);
+	ULONG __stdcall AddRef();
+	ULONG __stdcall Release();
 };
+

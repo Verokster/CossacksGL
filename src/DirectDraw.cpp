@@ -33,10 +33,10 @@
 #include "Hooks.h"
 #include "DirectDraw.h"
 #include "DirectDrawSurface.h"
+#include "DirectDrawInterface.h"
 #include "FpsCounter.h"
 
 #pragma region Not Implemented
-HRESULT DirectDraw::QueryInterface(REFIID, LPVOID*) { return DD_OK; }
 ULONG DirectDraw::AddRef() { return 0; }
 HRESULT DirectDraw::Compact() { return DD_OK; }
 HRESULT DirectDraw::CreateClipper(DWORD, LPDIRECTDRAWCLIPPER*, IUnknown*) { return DD_OK; }
@@ -785,7 +785,7 @@ VOID DirectDraw::RenderOld()
 
 									if (config.fpsCounter && count == frameCount - 1)
 									{
-										DWORD fps = fpsCounter->GetValue();
+										DWORD fps = fpsCounter->value;
 										DWORD digCount = 0;
 										DWORD current = fps;
 										do
@@ -833,7 +833,7 @@ VOID DirectDraw::RenderOld()
 
 									if (config.fpsCounter && count == frameCount - 1)
 									{
-										DWORD fps = fpsCounter->GetValue();
+										DWORD fps = fpsCounter->value;
 										DWORD digCount = 0;
 										DWORD current = fps;
 										do
@@ -1170,7 +1170,7 @@ VOID DirectDraw::RenderNew()
 
 									if (config.fpsCounter)
 									{
-										DWORD fps = fpsCounter->GetValue();
+										DWORD fps = fpsCounter->value;
 										DWORD digCount = 0;
 										DWORD current = fps;
 										do
@@ -1659,6 +1659,12 @@ VOID DirectDraw::ScaleMouse(UINT uMsg, LPARAM* lParam)
 
 		*lParam = MAKELONG(xPos, yPos);
 	}
+}
+
+HRESULT DirectDraw::QueryInterface(REFIID riid, LPVOID* ppvObj)
+{
+	*ppvObj = new DirectDrawInterface();
+	return DD_OK;
 }
 
 ULONG DirectDraw::Release()

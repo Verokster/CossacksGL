@@ -34,6 +34,9 @@
     <ClCompile Include="Hooks.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="DirectDrawInterface.cpp">
+      <Filter>Source Files\Draw</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Resource.h">
@@ -71,6 +74,9 @@
     </ClInclude>
     <ClInclude Include="Config.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectDrawInterface.h">
+      <Filter>Header Files\Draw</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

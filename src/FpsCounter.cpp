@@ -362,10 +362,5 @@ VOID FpsCounter::Calculate()
 	else
 		this->currentIndex = 0;
 
-	this->value = 1000.0f * total / this->summary;
-}
-
-DWORD FpsCounter::GetValue()
-{
-	return (DWORD)MathRound(this->value);
+	this->value = this->summary ? 1000 * total / this->summary : 0;
 }

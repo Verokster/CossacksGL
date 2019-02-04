@@ -420,6 +420,9 @@ LRESULT __stdcall WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 		else if (wParam == VK_F1)
 		{
+			if (!config.windowedMode)
+				WindowProc(hWnd, WM_COMMAND, IDM_WINDOW_FULLSCREEN, NULL);
+
 			WindowProc(hWnd, WM_COMMAND, IDM_HELP_ABOUT, NULL);
 			return NULL;
 		}

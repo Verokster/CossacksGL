@@ -22,24 +22,23 @@
 	SOFTWARE.
 */
 
-#version 110
-
-uniform sampler2D tex01;
-uniform sampler1D pal01;
+uniform mat4 mvp;
 uniform vec2 texSize;
 
-varying vec2 fTexCoord;
+#if __VERSION__ >= 130
+	#define COMPAT_IN in
+	#define COMPAT_OUT out
+	precision mediump float;
+#else
+	#define COMPAT_IN attribute 
+	#define COMPAT_OUT varying 
+#endif
+
+COMPAT_IN vec4 vCoord;
+COMPAT_IN vec2 vTexCoord;
+COMPAT_OUT vec2 fTexCoord;
 
 void main() {
-	vec2 texel = floor(fTexCoord);
-	vec2 phase = fTexCoord - texel;
-
-	#define TEX(x, y) texture1D(pal01, texture2D(tex01, (texel + 0.5 + vec2(x, y)) / texSize).r).rgb
-
-	vec3 color = mix(
-		mix(TEX(0.0, 0.0), TEX(1.0, 0.0), phase.x),
-		mix(TEX(0.0, 1.0), TEX(1.0, 1.0), phase.x),
-		phase.y);
-		
-	gl_FragColor = vec4(color, 1.0);
+	gl_Position = mvp * vec4(vCoord.xy, 0.0, 1.0);
+	fTexCoord = vTexCoord * texSize - 0.5;
 }

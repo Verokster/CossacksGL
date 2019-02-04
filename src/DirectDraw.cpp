@@ -69,10 +69,10 @@ HHOOK OldMouseHook;
 VOID CheckMenu()
 {
 	CheckMenuItem(config.menu, IDM_WINDOW_FULLSCREEN, MF_BYCOMMAND | (!config.windowedMode ? MF_CHECKED : MF_UNCHECKED));
-	
+
 	EnableMenuItem(config.menu, IDM_WINDOW_VSYNC, MF_BYCOMMAND | (glVersion && WGLSwapInterval ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)));
 	CheckMenuItem(config.menu, IDM_WINDOW_VSYNC, MF_BYCOMMAND | (glVersion && WGLSwapInterval && config.vSync ? MF_CHECKED : MF_UNCHECKED));
-	
+
 	CheckMenuItem(config.menu, IDM_WINDOW_FPSCOUNTER, MF_BYCOMMAND | (config.fpsCounter ? MF_CHECKED : MF_UNCHECKED));
 	CheckMenuItem(config.menu, IDM_WINDOW_MOUSECAPTURE, MF_BYCOMMAND | (config.mouseCapture ? MF_CHECKED : MF_UNCHECKED));
 	CheckMenuItem(config.menu, IDM_IMAGE_FILTERING, MF_BYCOMMAND | (config.filtering ? MF_CHECKED : MF_UNCHECKED));
@@ -799,18 +799,21 @@ VOID DirectDraw::RenderOld()
 										do
 										{
 											DWORD digit = current % 10;
-											bool* lpDig = (bool*)counters + FPS_WIDTH * FPS_HEIGHT * digit;
+											WORD* lpDig = (WORD*)counters[digit];
 
 											for (DWORD y = 0; y < FPS_HEIGHT; ++y)
 											{
 												BYTE* pix = (BYTE*)pixelBuffer + (FPS_Y + y) * frame->rect.width +
-													FPS_X + (FPS_STEP + FPS_WIDTH) * (dcount - 1) + FPS_STEP;
+													FPS_X + FPS_WIDTH * (dcount - 1);
 
+												WORD check = *lpDig++;
 												DWORD width = FPS_WIDTH;
 												do
 												{
-													if (*lpDig++)
+													if (check & 1)
 														*pix = 0xFF;
+
+													check >>= 1;
 													++pix;
 												} while (--width);
 											}
@@ -828,7 +831,7 @@ VOID DirectDraw::RenderOld()
 									{
 										BYTE* idx = this->indexBuffer + y * this->dwMode->width + frame->rect.x;
 										for (INT x = frame->rect.x; x < frame->vSize.width; ++x)
-											*pix++ = *(DWORD*)&this->palette[*idx++];
+											*pix++ = this->palette[*idx++];
 									}
 
 									if (config.fpsCounter && count == frameCount - 1)
@@ -847,18 +850,21 @@ VOID DirectDraw::RenderOld()
 										do
 										{
 											DWORD digit = current % 10;
-											bool* lpDig = (bool*)counters + FPS_WIDTH * FPS_HEIGHT * digit;
+											WORD* lpDig = (WORD*)counters[digit];
 
 											for (DWORD y = 0; y < FPS_HEIGHT; ++y)
 											{
 												DWORD* pix = (DWORD*)pixelBuffer + (FPS_Y + y) * frame->rect.width +
-													FPS_X + (FPS_STEP + FPS_WIDTH) * (dcount - 1) + FPS_STEP;
+													FPS_X + FPS_WIDTH * (dcount - 1);
 
+												WORD check = *lpDig++;
 												DWORD width = FPS_WIDTH;
 												do
 												{
-													if (*lpDig++)
+													if (check & 1)
 														*pix = 0xFFFFFFFF;
+
+													check >>= 1;
 													++pix;
 												} while (--width);
 											}
@@ -966,8 +972,8 @@ VOID __fastcall UseShaderProgram(ShaderProgram* program, DWORD texSize)
 	{
 		program->id = GLCreateProgram();
 
-		GLuint vShader = GL::CompileShaderSource(program->vertexName, GL_VERTEX_SHADER);
-		GLuint fShader = GL::CompileShaderSource(program->fragmentName, GL_FRAGMENT_SHADER);
+		GLuint vShader = GL::CompileShaderSource(program->vertexName, program->version, GL_VERTEX_SHADER);
+		GLuint fShader = GL::CompileShaderSource(program->fragmentName, program->version, GL_FRAGMENT_SHADER);
 		{
 
 			GLAttachShader(program->id, vShader);
@@ -1019,33 +1025,17 @@ VOID DirectDraw::RenderNew()
 		{ -1.0f, 1.0f, -1.0f, 1.0f }
 	};
 
+	DWORD glslVersion = glVersion >= GL_VER_3_0 ? 130 : 110;
+
 	struct {
 		ShaderProgram simple;
 		ShaderProgram nearest;
 		ShaderProgram linear;
-	} shaders;
-
-	shaders.linear.id = shaders.nearest.id = shaders.simple.id = 0;
-	shaders.linear.mvp = shaders.nearest.mvp = shaders.simple.mvp = (GLfloat*)mvpMatrix;
-
-	if (glVersion >= GL_VER_3_0)
-	{
-		shaders.simple.vertexName = IDR_130_VERTEX_SIMPLE;
-		shaders.simple.fragmentName = IDR_130_FRAGMENT_SIMPLE;
-		shaders.nearest.vertexName = IDR_130_VERTEX_NEAREST;
-		shaders.nearest.fragmentName = IDR_130_FRAGMENT_NEAREST;
-		shaders.linear.vertexName = IDR_130_VERTEX_LINEAR;
-		shaders.linear.fragmentName = IDR_130_FRAGMENT_LINEAR;
-	}
-	else
-	{
-		shaders.simple.vertexName = IDR_110_VERTEX_SIMPLE;
-		shaders.simple.fragmentName = IDR_110_FRAGMENT_SIMPLE;
-		shaders.nearest.vertexName = IDR_110_VERTEX_NEAREST;
-		shaders.nearest.fragmentName = IDR_110_FRAGMENT_NEAREST;
-		shaders.linear.vertexName = IDR_110_VERTEX_LINEAR;
-		shaders.linear.fragmentName = IDR_110_FRAGMENT_LINEAR;
-	}
+	} shaders = {
+		{ 0, glslVersion, IDR_VERTEX_SIMPLE, IDR_FRAGMENT_SIMPLE, (GLfloat*)mvpMatrix },
+		{ 0, glslVersion, IDR_VERTEX_NEAREST, IDR_FRAGMENT_NEAREST, (GLfloat*)mvpMatrix },
+		{ 0, glslVersion, IDR_VERTEX_LINEAR, IDR_FRAGMENT_LINEAR, (GLfloat*)mvpMatrix },
+	};
 
 	ShaderProgram* program = this->dwMode->bpp != 8 ? &shaders.simple : (config.windowedMode && config.filtering ? program = &shaders.linear : &shaders.nearest);
 	{
@@ -1111,7 +1101,7 @@ VOID DirectDraw::RenderNew()
 							GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 							GLTexImage2D(GL_TEXTURE_2D, 0, GL_R8, maxTexSize, maxTexSize, GL_NONE, GL_RED, GL_UNSIGNED_BYTE, NULL);
 
-							VOID* pixelBuffer = MemoryAlloc(FPS_HEIGHT * (FPS_WIDTH + FPS_STEP) * 4);
+							VOID* pixelBuffer = MemoryAlloc(FPS_HEIGHT * FPS_WIDTH * 4);
 							{
 								do
 								{
@@ -1184,41 +1174,30 @@ VOID DirectDraw::RenderNew()
 										do
 										{
 											DWORD digit = current % 10;
-											bool* lpDig = (bool*)counters + FPS_WIDTH * FPS_HEIGHT * digit;
+											WORD* lpDig = (WORD*)counters[digit];
 
 											for (DWORD y = 0; y < FPS_HEIGHT; ++y)
 											{
 												BYTE* idx = this->indexBuffer + (FPS_Y + y) * this->dwMode->width +
-													FPS_X + (FPS_STEP + FPS_WIDTH) * (dcount - 1);
+													FPS_X + FPS_WIDTH * (dcount - 1);
 
-												BYTE* pix = (BYTE*)pixelBuffer + y * (FPS_STEP + FPS_WIDTH) * digCount +
-													(FPS_STEP + FPS_WIDTH) * (dcount - 1);
+												BYTE* pix = (BYTE*)pixelBuffer + y * FPS_WIDTH * digCount +
+													FPS_WIDTH * (dcount - 1);
 
-												*(DWORD*)pix = *(DWORD*)idx;
-
-												pix += FPS_STEP;
-												idx += FPS_STEP;
-
+												WORD check = *lpDig++;
 												DWORD width = FPS_WIDTH;
 												do
 												{
-													*pix++ = *lpDig++ ? 0xFF : *idx;
+													*pix++ = (check & 1) ? 0xFF : *idx;
 													++idx;
+													check >>= 1;
 												} while (--width);
 											}
 
 											current = current / 10;
 										} while (--dcount);
 
-										DWORD lineWidth = (FPS_WIDTH + FPS_STEP) * digCount;
-
-										if (lineWidth % 4)
-											GLPixelStorei(GL_UNPACK_ALIGNMENT, lineWidth % 2 ? 1 : 2);
-
-										GLTexSubImage2D(GL_TEXTURE_2D, 0, FPS_X, FPS_Y, lineWidth, FPS_HEIGHT, GL_RED, GL_UNSIGNED_BYTE, pixelBuffer);
-
-										if (lineWidth % 4)
-											GLPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+										GLTexSubImage2D(GL_TEXTURE_2D, 0, FPS_X, FPS_Y, FPS_WIDTH * digCount, FPS_HEIGHT, GL_RED, GL_UNSIGNED_BYTE, pixelBuffer);
 									}
 
 									GLDrawArrays(GL_TRIANGLE_FAN, 0, 4);
@@ -1510,12 +1489,12 @@ DWORD __fastcall AddDisplayMode(DEVMODE* devMode)
 
 DirectDraw::DirectDraw(DirectDraw* lastObj)
 {
-	GL::Load();
-
 	this->last = lastObj;
 
 	this->dwMode = NULL;
+	this->indexBufferNA = NULL;
 	this->indexBuffer = NULL;
+	this->paletteNA = NULL;
 	this->palette = NULL;
 
 	this->hWnd = NULL;
@@ -1780,16 +1759,20 @@ HRESULT DirectDraw::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP)
 		}
 	}
 
-	if (this->indexBuffer)
-		MemoryFree(this->indexBuffer);
+	if (this->indexBufferNA)
+		MemoryFree(this->indexBufferNA);
 
-	this->indexBuffer = (BYTE*)MemoryAlloc(dwWidth * dwHeight * (dwBPP >> 3) * (dwBPP >> 3)); // double (dwBPP >> 3) for EU video fix
+	this->indexBufferNA = MemoryAlloc(dwWidth * dwHeight * (dwBPP >> 3) * (dwBPP >> 3) + 16); // double (dwBPP >> 3) for EU video fix
+	this->indexBuffer = (BYTE*)(((DWORD)this->indexBufferNA + 16) & 0xFFFFFFF0);
 
-	if (!this->palette)
-		this->palette = (PALETTEENTRY*)MemoryAlloc(256 * sizeof(PALETTEENTRY));
+	if (!this->paletteNA)
+	{
+		this->paletteNA = MemoryAlloc(256 * sizeof(DWORD) + 16);
+		this->palette = (DWORD*)(((DWORD)this->paletteNA + 16) & 0xFFFFFFF0);
+	}
 
-	MemoryZero(this->palette, 256 * sizeof(PALETTEENTRY));
-	*(DWORD*)&this->palette[255] = WHITE;
+	MemoryZero(this->palette, 255 * sizeof(DWORD));
+	this->palette[255] = WHITE;
 
 	if (config.windowedMode)
 	{
@@ -1921,7 +1904,7 @@ HRESULT DirectDraw::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray, 
 	this->ddPallete = new DirectDrawPalette(this, this->ddPallete);
 	*(DirectDrawPalette**)lplpDDPalette = this->ddPallete;
 
-	MemoryCopy(this->palette, lpDDColorArray, 255 * sizeof(PALETTEENTRY));
+	MemoryCopy(this->palette, lpDDColorArray, 255 * sizeof(DWORD));
 	this->isPalChanged = TRUE;
 
 	return DD_OK;
@@ -1952,15 +1935,17 @@ VOID DirectDraw::ReleaseMode()
 		this->ddPallete = NULL;
 	}
 
-	if (this->palette)
+	if (this->paletteNA)
 	{
-		MemoryFree(this->palette);
+		MemoryFree(this->paletteNA);
+		this->paletteNA = NULL;
 		this->palette = NULL;
 	}
 
-	if (this->indexBuffer)
+	if (this->indexBufferNA)
 	{
-		MemoryFree(this->indexBuffer);
+		MemoryFree(this->indexBufferNA);
+		this->indexBufferNA = NULL;
 		this->indexBuffer = NULL;
 	}
 }

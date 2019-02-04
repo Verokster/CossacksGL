@@ -61,7 +61,6 @@ GLGETINTEGERV GLGetIntegerv;
 GLCLEAR GLClear;
 GLCLEARCOLOR GLClearColor;
 GLCOLORTABLE GLColorTable;
-GLPIXELSTOREI GLPixelStorei;
 GLREADPIXELS GLReadPixels;
 
 #ifdef _DEBUG
@@ -227,7 +226,6 @@ namespace GL
 		LoadFunction(buffer, PREFIX_GL, "Clear", (PROC*)&GLClear);
 		LoadFunction(buffer, PREFIX_GL, "ClearColor", (PROC*)&GLClearColor);
 		LoadFunction(buffer, PREFIX_GL, "ColorTable", (PROC*)&GLColorTable, "EXT");
-		LoadFunction(buffer, PREFIX_GL, "PixelStorei", (PROC*)&GLPixelStorei);
 		LoadFunction(buffer, PREFIX_GL, "ReadPixels", (PROC*)&GLReadPixels);
 
 #ifdef _DEBUG
@@ -465,7 +463,7 @@ namespace GL
 			Main::ShowError("Bad pixel type", __FILE__, __LINE__);
 	}
 
-	GLuint __fastcall CompileShaderSource(DWORD name, GLenum type)
+	GLuint __fastcall CompileShaderSource(DWORD name, DWORD version, GLenum type)
 	{
 		HRSRC hResource = FindResource(hDllModule, MAKEINTRESOURCE(name), RT_RCDATA);
 		if (!hResource)
@@ -481,12 +479,18 @@ namespace GL
 
 		GLuint shader = GLCreateShader(type);
 
-		const GLchar* source[] = { (const GLchar*)pData };
-		const GLint lengths[] = { (GLint)SizeofResource(hDllModule, hResource) };
-		GLShaderSource(shader, 1, source, lengths);
+		DWORD length = SizeofResource(hDllModule, hResource) + 13;
 
 		GLint result;
-		GLCompileShader(shader);
+		CHAR* source = (CHAR*)MemoryAlloc(length);
+		{
+			StrPrint(source, "#version %d\n", version);
+			StrCat(source, (CHAR*)pData);
+			GLShaderSource(shader, 1, (const GLchar**)&source, (const GLint*)&length);
+			GLCompileShader(shader);
+		}
+		MemoryFree(source);
+
 		GLGetShaderiv(shader, GL_COMPILE_STATUS, &result);
 		if (!result)
 		{

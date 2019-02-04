@@ -22,17 +22,21 @@
 	SOFTWARE.
 */
 
-#version 110
+uniform sampler2D tex01;
 
-uniform mat4 mvp;
-uniform vec2 texSize;
+#if __VERSION__ >= 130
+	#define COMPAT_IN in
+	#define COMPAT_TEXTURE_2D texture
+	precision mediump float;
+	out mediump vec4 FRAG_COLOR;
+#else
+	#define COMPAT_IN varying 
+	#define COMPAT_TEXTURE_2D texture2D
+	#define FRAG_COLOR gl_FragColor
+#endif
 
-attribute vec4 vCoord;
-attribute vec2 vTexCoord;
-
-varying vec2 fTexCoord;
+COMPAT_IN vec2 fTexCoord;
 
 void main() {
-	gl_Position = mvp * vec4(vCoord.xy, 0.0, 1.0);
-	fTexCoord = vTexCoord * texSize - 0.5;
+	FRAG_COLOR = COMPAT_TEXTURE_2D(tex01, fTexCoord);
 }

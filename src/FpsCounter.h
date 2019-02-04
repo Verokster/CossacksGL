@@ -24,16 +24,15 @@
 
 #pragma once
 #define FPS_X 0
-#define FPS_Y 4
-#define FPS_WIDTH 14
-#define FPS_HEIGHT 24
-#define FPS_STEP 4
+#define FPS_Y 5
+#define FPS_WIDTH 16
+#define FPS_HEIGHT 19
 #define FPS_COUNT 120
 #define FPS_ACCURACY 2000
 
 extern BOOL isFpsChanged;
 
-extern const bool counters[10][FPS_HEIGHT][FPS_WIDTH];
+extern const WORD counters[10][FPS_HEIGHT];
 
 struct FrameItem
 {

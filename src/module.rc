@@ -55,7 +55,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP
 FONT 8, "System", 0, 0, 0x1
 BEGIN
     CTEXT           "Cossacks && American Conquest\nOpenGL Wrapper",1002,0,6,162,18
-    CTEXT           "Version 2.05   Build 122",IDC_STATIC,0,30,162,8
+    CTEXT           "Version 2.06   Build 130",IDC_STATIC,0,30,162,8
     CTEXT           "Copyright © 2019 Verok",1006,0,48,162,8
 	DEFPUSHBUTTON   "OK",IDOK,65,72,32,14,WS_GROUP
 	CONTROL         "verokster@gmail.com",IDC_LNK_EMAIL,"SysLink",WS_TABSTOP,48,57,72,12
@@ -68,8 +68,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2019,2,2,122
- PRODUCTVERSION 2,0,5,0
+ FILEVERSION 2019,2,4,130
+ PRODUCTVERSION 2,0,6,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS VS_FF_DEBUG
@@ -85,10 +85,10 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "FileDescription", "Cossacks OpenGL wrapper"
-            VALUE "FileVersion", "2019.02.02.122"
+            VALUE "FileVersion", "2019.02.04.130"
             VALUE "LegalCopyright", "© 2019 Verok (verokster@gmail.com)"
             VALUE "OriginalFilename", "dplayx.dll"
-            VALUE "ProductVersion", "2.0.5"
+            VALUE "ProductVersion", "2.0.6"
 			VALUE "ProductName", "CossacksGL"
         END
     END
@@ -106,19 +106,12 @@ END
 // RCDATA
 //
 
-IDR_110_VERTEX_SIMPLE				RCDATA				".\\shaders\\110\\simple.vgl"
-IDR_110_FRAGMENT_SIMPLE				RCDATA				".\\shaders\\110\\simple.fgl"
-//IDR_110_VERTEX_NEAREST				RCDATA				".\\shaders\\110\\nearest.vgl"
-IDR_110_FRAGMENT_NEAREST			RCDATA				".\\shaders\\110\\nearest.fgl"
-IDR_110_VERTEX_LINEAR				RCDATA				".\\shaders\\110\\linear.vgl"
-IDR_110_FRAGMENT_LINEAR				RCDATA				".\\shaders\\110\\linear.fgl"
-
-IDR_130_VERTEX_SIMPLE				RCDATA				".\\shaders\\130\\simple.vgl"
-IDR_130_FRAGMENT_SIMPLE				RCDATA				".\\shaders\\130\\simple.fgl"
-//IDR_130_VERTEX_NEAREST				RCDATA				".\\shaders\\130\\nearest.vgl"
-IDR_130_FRAGMENT_NEAREST			RCDATA				".\\shaders\\130\\nearest.fgl"
-IDR_130_VERTEX_LINEAR				RCDATA				".\\shaders\\130\\linear.vgl"
-IDR_130_FRAGMENT_LINEAR				RCDATA				".\\shaders\\130\\linear.fgl"
+IDR_VERTEX_SIMPLE				RCDATA				".\\shaders\\simple.vgl"
+IDR_FRAGMENT_SIMPLE				RCDATA				".\\shaders\\simple.fgl"
+//IDR_VERTEX_NEAREST			RCDATA				".\\shaders\\nearest.vgl"
+IDR_FRAGMENT_NEAREST			RCDATA				".\\shaders\\nearest.fgl"
+IDR_VERTEX_LINEAR				RCDATA				".\\shaders\\linear.vgl"
+IDR_FRAGMENT_LINEAR				RCDATA				".\\shaders\\linear.fgl"
 
 #ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////

@@ -44,7 +44,7 @@ ULONG DirectDrawPalette::Release()
 
 HRESULT DirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries)
 {
-	MemoryCopy(((DirectDraw*)this->ddraw)->palette, lpEntries, 255 * sizeof(PALETTEENTRY));
+	MemoryCopy(((DirectDraw*)this->ddraw)->palette, lpEntries, 255 * sizeof(DWORD));
 	((DirectDraw*)this->ddraw)->isPalChanged = TRUE;
 
 	return DD_OK;

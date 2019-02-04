@@ -76,6 +76,7 @@ struct DisplayMode
 struct ShaderProgram
 {
 	GLuint id;
+	DWORD version;
 	DWORD vertexName;
 	DWORD fragmentName;
 	GLfloat* mvp;

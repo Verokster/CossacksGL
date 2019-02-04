@@ -133,7 +133,6 @@ typedef VOID(__stdcall *GLGETINTEGERV)(GLenum pname, GLint* data);
 typedef VOID(__stdcall *GLCLEAR)(GLbitfield mask);
 typedef VOID(__stdcall *GLCLEARCOLOR)(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
 typedef VOID(__stdcall *GLCOLORTABLE)(GLenum target, GLenum internalFormat, GLsizei width, GLenum format, GLenum type, const GLvoid *data);
-typedef VOID(__stdcall *GLPIXELSTOREI)(GLenum pname, GLint param);
 typedef VOID(__stdcall *GLREADPIXELS)(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLvoid* data);
 
 #ifdef _DEBUG
@@ -209,7 +208,6 @@ extern GLGETINTEGERV GLGetIntegerv;
 extern GLCLEAR GLClear;
 extern GLCLEARCOLOR GLClearColor;
 extern GLCOLORTABLE GLColorTable;
-extern GLPIXELSTOREI GLPixelStorei;
 extern GLREADPIXELS GLReadPixels;
 
 #ifdef _DEBUG
@@ -261,6 +259,6 @@ namespace GL
 	VOID __fastcall CreateContextAttribs(HDC hDc, HGLRC* hRc);
 	VOID __fastcall PreparePixelFormatDescription(PIXELFORMATDESCRIPTOR* pfd);
 	INT __fastcall PreparePixelFormat(PIXELFORMATDESCRIPTOR* pfd);
-	GLuint __fastcall CompileShaderSource(DWORD name, GLenum type);
+	GLuint __fastcall CompileShaderSource(DWORD name, DWORD version, GLenum type);
 	VOID __fastcall ResetContext();
 }

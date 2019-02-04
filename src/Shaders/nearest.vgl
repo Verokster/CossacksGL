@@ -22,13 +22,22 @@
 	SOFTWARE.
 */
 
-#version 110
+uniform mat4 mvp;
 
-uniform sampler2D tex01;
-uniform sampler1D pal01;
+#if __VERSION__ >= 130
+	#define COMPAT_IN in
+	#define COMPAT_OUT out
+	precision mediump float;
+#else
+	#define COMPAT_IN attribute 
+	#define COMPAT_OUT varying 
+#endif
 
-varying vec2 fTexCoord;
+COMPAT_IN vec4 vCoord;
+COMPAT_IN vec2 vTexCoord;
+COMPAT_OUT vec2 fTexCoord;
 
 void main() {
-	gl_FragColor = texture1D(pal01, texture2D(tex01, fTexCoord).r);
+	gl_Position = mvp * vec4(vCoord.xy, 0.0, 1.0);
+	fTexCoord = vTexCoord;
 }

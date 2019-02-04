@@ -23,10 +23,10 @@
 */
 
 #pragma once
-#define FPS_X 0
+#define FPS_X 3
 #define FPS_Y 5
 #define FPS_WIDTH 16
-#define FPS_HEIGHT 19
+#define FPS_HEIGHT 24
 #define FPS_COUNT 120
 #define FPS_ACCURACY 2000
 

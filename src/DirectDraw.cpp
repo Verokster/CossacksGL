@@ -801,8 +801,7 @@ VOID DirectDraw::RenderOld()
 										current = fps;
 										do
 										{
-											DWORD digit = current % 10;
-											WORD* lpDig = (WORD*)counters[digit];
+											WORD* lpDig = (WORD*)counters[current % 10];
 
 											for (DWORD y = 0; y < FPS_HEIGHT; ++y)
 											{
@@ -815,9 +814,8 @@ VOID DirectDraw::RenderOld()
 												{
 													if (check & 1)
 														*pix = 0xFF;
-
-													check >>= 1;
 													++pix;
+													check >>= 1;
 												} while (--width);
 											}
 
@@ -866,9 +864,8 @@ VOID DirectDraw::RenderOld()
 												{
 													if (check & 1)
 														*pix = 0xFFFFFFFF;
-
-													check >>= 1;
 													++pix;
+													check >>= 1;
 												} while (--width);
 											}
 

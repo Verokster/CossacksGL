@@ -463,7 +463,7 @@ namespace GL
 			Main::ShowError("Bad pixel type", __FILE__, __LINE__);
 	}
 
-	GLuint __fastcall CompileShaderSource(DWORD name, DWORD version, GLenum type)
+	GLuint __fastcall CompileShaderSource(DWORD name, const CHAR* version, GLenum type)
 	{
 		HRSRC hResource = FindResource(hDllModule, MAKEINTRESOURCE(name), RT_RCDATA);
 		if (!hResource)
@@ -479,17 +479,12 @@ namespace GL
 
 		GLuint shader = GLCreateShader(type);
 
-		DWORD length = SizeofResource(hDllModule, hResource) + 13;
+		const GLchar* source[] = { "#version ", version, "\n", (GLchar*)pData };
+		const GLint lengths[] = { 10, 4, 2, (GLint)SizeofResource(hDllModule, hResource) };
+		GLShaderSource(shader, 4, source, lengths);
 
 		GLint result;
-		CHAR* source = (CHAR*)MemoryAlloc(length);
-		{
-			StrPrint(source, "#version %d\n", version);
-			StrCat(source, (CHAR*)pData);
-			GLShaderSource(shader, 1, (const GLchar**)&source, (const GLint*)&length);
-			GLCompileShader(shader);
-		}
-		MemoryFree(source);
+		GLCompileShader(shader);
 
 		GLGetShaderiv(shader, GL_COMPILE_STATUS, &result);
 		if (!result)

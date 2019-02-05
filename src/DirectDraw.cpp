@@ -1025,7 +1025,7 @@ VOID DirectDraw::RenderNew()
 		{ -1.0f, 1.0f, -1.0f, 1.0f }
 	};
 
-	DWORD glslVersion = glVersion >= GL_VER_3_0 ? 130 : 110;
+	const CHAR* glslVersion = glVersion >= GL_VER_3_0 ? GLSL_VER_1_30 : GLSL_VER_1_10;
 
 	struct {
 		ShaderProgram simple;

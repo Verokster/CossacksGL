@@ -55,13 +55,13 @@ HRESULT DirectDraw::DuplicateSurface(LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE*) 
 HRESULT DirectDraw::WaitForVerticalBlank(DWORD, HANDLE) { return DD_OK; }
 #pragma endregion
 
-#define RECOUNT 32 
+#define RECOUNT 64 
 #define WHITE 0xFFFFFFFF;
 
 #define MIN_WIDTH 240
 #define MIN_HEIGHT 180
 
-DisplayMode resolutionsList[32];
+DisplayMode resolutionsList[64];
 
 WNDPROC OldWindowProc, OldPanelProc;
 HHOOK OldMouseHook;
@@ -1099,7 +1099,7 @@ VOID DirectDraw::RenderNew()
 							GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 							GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 							GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-							GLTexImage2D(GL_TEXTURE_2D, 0, GL_R8, maxTexSize, maxTexSize, GL_NONE, GL_RED, GL_UNSIGNED_BYTE, NULL);
+							GLTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, maxTexSize, maxTexSize, GL_NONE, GL_ALPHA, GL_UNSIGNED_BYTE, NULL);
 
 							VOID* pixelBuffer = MemoryAlloc(FPS_HEIGHT * FPS_WIDTH * 4);
 							{
@@ -1156,7 +1156,7 @@ VOID DirectDraw::RenderNew()
 										GLBindTexture(GL_TEXTURE_2D, indicesId);
 									}
 
-									GLTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, this->dwMode->width, this->dwMode->height, GL_RED, GL_UNSIGNED_BYTE, this->indexBuffer);
+									GLTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, this->dwMode->width, this->dwMode->height, GL_ALPHA, GL_UNSIGNED_BYTE, this->indexBuffer);
 
 									if (config.fpsCounter)
 									{
@@ -1197,7 +1197,7 @@ VOID DirectDraw::RenderNew()
 											current = current / 10;
 										} while (--dcount);
 
-										GLTexSubImage2D(GL_TEXTURE_2D, 0, FPS_X, FPS_Y, FPS_WIDTH * digCount, FPS_HEIGHT, GL_RED, GL_UNSIGNED_BYTE, pixelBuffer);
+										GLTexSubImage2D(GL_TEXTURE_2D, 0, FPS_X, FPS_Y, FPS_WIDTH * digCount, FPS_HEIGHT, GL_ALPHA, GL_UNSIGNED_BYTE, pixelBuffer);
 									}
 
 									GLDrawArrays(GL_TRIANGLE_FAN, 0, 4);
@@ -1454,7 +1454,7 @@ DWORD __fastcall AddDisplayMode(DEVMODE* devMode)
 			resList->width = devMode->dmPelsWidth;
 			resList->height = devMode->dmPelsHeight;
 			resList->bpp = devMode->dmBitsPerPel;
-			resList->frequency = devMode->dmDisplayFrequency > 60 ? devMode->dmDisplayFrequency : 60;
+			resList->frequency = devMode->dmDisplayFrequency;
 			return i + 1;
 		}
 
@@ -1687,10 +1687,7 @@ HRESULT DirectDraw::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceD
 		{
 			DWORD idx;
 
-			if (devMode.dmBitsPerPel != 8 &&
-				(devMode.dmPelsWidth == 1024 && devMode.dmPelsHeight == 768 ||
-					devMode.dmPelsWidth == 800 && devMode.dmPelsHeight == 600 ||
-					devMode.dmPelsWidth == 640 && devMode.dmPelsHeight == 480))
+			if (devMode.dmBitsPerPel != 8)
 			{
 				idx = AddDisplayMode(&devMode);
 				if (idx)
@@ -1716,14 +1713,6 @@ HRESULT DirectDraw::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceD
 		MemoryZero(&devMode, sizeof(DEVMODE));
 		devMode.dmSize = sizeof(DEVMODE);
 	}
-
-#ifdef _DEBUG
-	devMode.dmBitsPerPel = 8;
-	devMode.dmDisplayFrequency = 75;
-	devMode.dmPelsWidth = 1920;
-	devMode.dmPelsHeight = 1080;
-	count = AddDisplayMode(&devMode);
-#endif
 
 	DDSURFACEDESC ddSurfaceDesc;
 	DisplayMode* mode = resolutionsList;

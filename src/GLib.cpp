@@ -480,7 +480,7 @@ namespace GL
 		GLuint shader = GLCreateShader(type);
 
 		const GLchar* source[] = { "#version ", version, "\n", (GLchar*)pData };
-		const GLint lengths[] = { 10, 4, 2, (GLint)SizeofResource(hDllModule, hResource) };
+		const GLint lengths[] = { 9, 3, 1, (GLint)SizeofResource(hDllModule, hResource) };
 		GLShaderSource(shader, 4, source, lengths);
 
 		GLint result;

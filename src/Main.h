@@ -30,8 +30,6 @@ namespace Main
 {
 	HRESULT __stdcall DirectDrawCreate(GUID* lpGUID, LPDIRECTDRAW* lplpDD, IUnknown* pUnkOuter);
 
-	HRESULT __stdcall DirectDrawRedirectCreate(GUID* lpGUID, LPDIRECTDRAW* lplpDD, IUnknown* pUnkOuter);
-
 	DirectDraw* FindDirectDrawByWindow(HWND hWnd);
 
 	VOID __fastcall ShowError(CHAR* message, CHAR* file, DWORD line);

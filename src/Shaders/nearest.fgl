@@ -41,5 +41,5 @@ uniform sampler1D pal01;
 COMPAT_IN vec2 fTexCoord;
 
 void main() {
-	FRAG_COLOR = COMPAT_TEXTURE_1D(pal01, COMPAT_TEXTURE_2D(tex01, fTexCoord).r);
+	FRAG_COLOR = COMPAT_TEXTURE_1D(pal01, COMPAT_TEXTURE_2D(tex01, fTexCoord).a);
 }

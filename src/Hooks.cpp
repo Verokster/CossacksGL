@@ -36,59 +36,6 @@ namespace Hooks
 	PIMAGE_DOS_HEADER headDOS;
 	INT baseOffset;
 
-	BOOL __fastcall PatchRedirect(DWORD addr, DWORD dest, DWORD size, BYTE instruction)
-	{
-		DWORD address = addr + baseOffset;
-
-		DWORD old_prot;
-		if (VirtualProtect((VOID*)address, size, PAGE_EXECUTE_READWRITE, &old_prot))
-		{
-			BYTE* jump = (BYTE*)address;
-			*jump = instruction;
-			++jump;
-			*(DWORD*)jump = dest - address - size;
-
-			VirtualProtect((VOID*)address, size, old_prot, &old_prot);
-
-			return TRUE;
-		}
-		return FALSE;
-	}
-
-	BOOL __fastcall PatchJump(DWORD addr, DWORD dest)
-	{
-		INT relative = dest - addr - baseOffset - 2;
-		if (relative >= -128 && relative <= 127)
-			return PatchRedirect(addr, dest, 2, 0xEB);
-		else
-			return PatchRedirect(addr, dest, 5, 0xE9);
-	}
-
-	BOOL __fastcall PatchHook(DWORD addr, VOID* hook)
-	{
-		return PatchRedirect(addr, (DWORD)hook, 5, 0xE9);
-	}
-
-	BOOL __fastcall PatchCall(DWORD addr, VOID* hook)
-	{
-		return PatchRedirect(addr, (DWORD)hook, 5, 0xE8);
-	}
-
-	BOOL __fastcall PatchNop(DWORD addr, DWORD size)
-	{
-		DWORD address = addr + baseOffset;
-
-		DWORD old_prot;
-		if (VirtualProtect((VOID*)address, size, PAGE_EXECUTE_READWRITE, &old_prot))
-		{
-			MemorySet((VOID*)address, 0x90, size);
-			VirtualProtect((VOID*)address, size, old_prot, &old_prot);
-
-			return TRUE;
-		}
-		return FALSE;
-	}
-
 	BOOL __fastcall PatchBlock(DWORD addr, VOID* block, DWORD size)
 	{
 		DWORD address = addr + baseOffset;
@@ -148,23 +95,8 @@ namespace Hooks
 		}
 		return FALSE;
 	}
-
-	BOOL __fastcall PatchWord(DWORD addr, WORD value)
-	{
-		return PatchBlock(addr, &value, sizeof(value));
-	}
-
-	BOOL __fastcall PatchInt(DWORD addr, INT value)
-	{
-		return PatchBlock(addr, &value, sizeof(value));
-	}
-
+	
 	BOOL __fastcall PatchDWord(DWORD addr, DWORD value)
-	{
-		return PatchBlock(addr, &value, sizeof(value));
-	}
-
-	BOOL __fastcall PatchByte(DWORD addr, BYTE value)
 	{
 		return PatchBlock(addr, &value, sizeof(value));
 	}
@@ -595,7 +527,7 @@ namespace Hooks
 		MappedFile file;
 		MemoryZero(&file, sizeof(MappedFile));
 		{
-			DWORD all = PatchFunction(&file, "DirectDrawCreate", Main::DirectDrawCreate);
+			PatchFunction(&file, "DirectDrawCreate", Main::DirectDrawCreate);
 
 			PatchFunction(&file, "RegisterClassA", RegisterClassHook);
 			PatchFunction(&file, "CreateWindowExA", CreateWindowExHook);

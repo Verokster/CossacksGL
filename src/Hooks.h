@@ -28,20 +28,5 @@ extern MciVideo mciVideo;
 
 namespace Hooks
 {
-	extern INT baseOffset;
-
-	BOOL __fastcall PatchJump(DWORD addr, DWORD dest);
-	BOOL __fastcall PatchHook(DWORD addr, VOID* hook);
-	BOOL __fastcall PatchCall(DWORD addr, VOID* hook);
-	BOOL __fastcall PatchNop(DWORD addr, DWORD size);
-	BOOL __fastcall PatchBlock(DWORD addr, VOID* block, DWORD size);
-	BOOL __fastcall PatchWord(DWORD addr, WORD value);
-	BOOL __fastcall PatchInt(DWORD addr, INT value);
-	BOOL __fastcall PatchDWord(DWORD addr, DWORD value);
-	BOOL __fastcall PatchByte(DWORD addr, BYTE value);
-	BOOL __fastcall ReadWord(DWORD addr, WORD* value);
-	BOOL __fastcall ReadDWord(DWORD addr, DWORD* value);
-	DWORD __fastcall PatchFunction(MappedFile* file, const CHAR* function, VOID* addr);
-
 	VOID Load();
 }

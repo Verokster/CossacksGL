@@ -28,8 +28,11 @@
 #include "Hooks.h"
 #include "Main.h"
 #include "Config.h"
+#include "Window.h"
 
 MciVideo mciVideo;
+MCIDEVICEID mciList[16];
+DWORD mciIndex;
 
 namespace Hooks
 {
@@ -198,9 +201,6 @@ namespace Hooks
 
 	MCISENDCOMMANDA MciSendCommandOld;
 	MCIGETERRORSTRINGA MciGetErrorStringOld;
-	WNDPROC OldWindowProc;
-	MCIDEVICEID mciList[16];
-	DWORD mciIndex;
 
 	VOID __fastcall CalcVideoSize(DWORD width, DWORD height, RECT* rc)
 	{
@@ -229,73 +229,6 @@ namespace Hooks
 				}
 			}
 		}
-	}
-
-	LRESULT __stdcall WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-	{
-		switch (uMsg)
-		{
-		case WM_SIZE:
-		{
-			if (mciVideo.deviceId)
-			{
-				MCI_OVLY_RECT_PARMS params;
-				params.dwCallback = (DWORD_PTR)hWnd;
-				CalcVideoSize(LOWORD(lParam), HIWORD(lParam), &params.rc);
-				MciSendCommand(mciList[mciVideo.deviceId - 1], MCI_PUT, MCI_OVLY_RECT | MCI_OVLY_PUT_DESTINATION, (DWORD_PTR)&params);
-			}
-
-			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
-		}
-
-		case WM_COMMAND:
-		{
-			if (wParam == IDM_IMAGE_ASPECTRATIO)
-			{
-				if (mciVideo.deviceId)
-				{
-					RECT rc;
-					GetClientRect(hWnd, &rc);
-
-					MCI_OVLY_RECT_PARMS params;
-					params.dwCallback = (DWORD_PTR)hWnd;
-					CalcVideoSize(rc.right - rc.left, rc.bottom - rc.top, &params.rc);
-					MciSendCommand(mciList[mciVideo.deviceId - 1], MCI_PUT, MCI_OVLY_RECT | MCI_OVLY_PUT_DESTINATION, (DWORD_PTR)&params);
-				}
-				return NULL;
-			}
-			else
-				return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
-		}
-
-		case MM_MCINOTIFY:
-		{
-			MCIDEVICEID mciId = (MCIDEVICEID)lParam;
-
-			DWORD check = 16;
-			DWORD idx = mciIndex;
-			do
-			{
-				if (!idx)
-					idx = 15;
-				else
-					--idx;
-
-				if (mciList[idx] == mciId)
-				{
-					mciId = idx + 1;
-					break;
-				}
-			} while (--check);
-
-			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, (LPARAM)mciId);
-		}
-
-		default:
-			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
-		}
-
-		return NULL;
 	}
 
 	ATOM __stdcall RegisterClassHook(WNDCLASSA *lpWndClass)
@@ -371,7 +304,7 @@ namespace Hooks
 			else
 				SetWindowLong(hWnd, GWL_STYLE, FS_STYLE);
 
-			OldWindowProc = (WNDPROC)SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)WindowProc);
+			Window::SetCaptureWindow(hWnd);
 		}
 
 		return hWnd;

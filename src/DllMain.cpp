@@ -26,29 +26,7 @@
 #include "Resource.h"
 #include "Hooks.h"
 #include "Config.h"
-
-HHOOK OldWindowKeyHook;
-LRESULT __stdcall WindowKeyHook(INT nCode, WPARAM wParam, LPARAM lParam)
-{
-	if (nCode == HC_ACTION && (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) &&
-		!config.windowedMode && !mciVideo.deviceId)
-	{
-		KBDLLHOOKSTRUCT* phs = (KBDLLHOOKSTRUCT*)lParam;
-		if (phs->vkCode == VK_SNAPSHOT)
-		{
-			HWND hWnd = GetActiveWindow();
-
-			DirectDraw* ddraw = ddrawList;
-			if (ddraw && (ddraw->hWnd == hWnd || ddraw->hDraw == hWnd))
-			{
-				ddraw->isTakeSnapshot = TRUE;
-				return TRUE;
-			}
-		}
-	}
-
-	return CallNextHookEx(OldWindowKeyHook, nCode, wParam, lParam);
-}
+#include "Window.h"
 
 BOOL __stdcall DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 {
@@ -67,7 +45,7 @@ BOOL __stdcall DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		Config::Load(GetModuleHandle(NULL));
 		Hooks::Load();
 
-		OldWindowKeyHook = SetWindowsHookEx(WH_KEYBOARD_LL, WindowKeyHook, NULL, 0);
+		Window::SetCaptureKeys(TRUE);
 
 		{
 			WNDCLASS wc = {
@@ -102,11 +80,8 @@ BOOL __stdcall DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 	}
 
 	case DLL_PROCESS_DETACH:
-		if (OldMouseHook)
-			UnhookWindowsHookEx(OldMouseHook);
-
-		if (OldWindowKeyHook)
-			UnhookWindowsHookEx(OldWindowKeyHook);
+		Window::SetCaptureMouse(FALSE);
+		Window::SetCaptureKeys(FALSE);
 
 		ChangeDisplaySettings(NULL, NULL);
 		GL::Free();

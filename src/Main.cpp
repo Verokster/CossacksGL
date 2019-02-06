@@ -28,8 +28,6 @@
 #include "Main.h"
 #include "Hooks.h"
 
-DirectDraw* ddrawList;
-
 namespace Main
 {
 	HRESULT __stdcall DirectDrawCreate(GUID* lpGUID, LPDIRECTDRAW* lplpDD, IUnknown* pUnkOuter)

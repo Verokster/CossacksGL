@@ -96,7 +96,6 @@ extern HMODULE hDllModule;
 extern HANDLE hActCtx;
 
 extern DirectDraw* ddrawList;
-extern HHOOK OldMouseHook;
 
 VOID LoadMsvCRT();
 VOID LoadDPlayX();

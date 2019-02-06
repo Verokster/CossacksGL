@@ -25,8 +25,12 @@
 #pragma once
 
 extern MciVideo mciVideo;
+extern MCIDEVICEID mciList[];
+extern DWORD mciIndex;
 
 namespace Hooks
 {
+	VOID __fastcall CalcVideoSize(DWORD width, DWORD height, RECT* rc);
+
 	VOID Load();
 }

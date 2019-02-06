@@ -26,6 +26,7 @@
 
 HMODULE hDllModule;
 HANDLE hActCtx;
+DirectDraw* ddrawList;
 
 MCISENDCOMMANDA MciSendCommand;
 MCIGETERRORSTRINGA MciGetErrorString;

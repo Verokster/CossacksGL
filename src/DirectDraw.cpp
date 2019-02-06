@@ -23,14 +23,12 @@
 */
 
 #include "stdafx.h"
-#include "resource.h"
-#include "math.h"
+#include "Resource.h"
 #include "Windowsx.h"
-#include "Shellapi.h"
-#include "CommCtrl.h"
 #include "Main.h"
 #include "Config.h"
 #include "Hooks.h"
+#include "Window.h"
 #include "DirectDraw.h"
 #include "DirectDrawSurface.h"
 #include "DirectDrawInterface.h"
@@ -58,504 +56,87 @@ HRESULT DirectDraw::WaitForVerticalBlank(DWORD, HANDLE) { return DD_OK; }
 #define RECOUNT 64 
 #define WHITE 0xFFFFFFFF;
 
-#define MIN_WIDTH 240
-#define MIN_HEIGHT 180
-
 DisplayMode resolutionsList[64];
 
-WNDPROC OldWindowProc, OldPanelProc;
-HHOOK OldMouseHook;
-
-VOID CheckMenu()
+DWORD __fastcall AddDisplayMode(DEVMODE* devMode)
 {
-	CheckMenuItem(config.menu, IDM_WINDOW_FULLSCREEN, MF_BYCOMMAND | (!config.windowedMode ? MF_CHECKED : MF_UNCHECKED));
+	DisplayMode* resList = resolutionsList;
 
-	EnableMenuItem(config.menu, IDM_WINDOW_VSYNC, MF_BYCOMMAND | (glVersion && WGLSwapInterval ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)));
-	CheckMenuItem(config.menu, IDM_WINDOW_VSYNC, MF_BYCOMMAND | (glVersion && WGLSwapInterval && config.vSync ? MF_CHECKED : MF_UNCHECKED));
-
-	CheckMenuItem(config.menu, IDM_WINDOW_FPSCOUNTER, MF_BYCOMMAND | (config.fpsCounter ? MF_CHECKED : MF_UNCHECKED));
-	CheckMenuItem(config.menu, IDM_WINDOW_MOUSECAPTURE, MF_BYCOMMAND | (config.mouseCapture ? MF_CHECKED : MF_UNCHECKED));
-	CheckMenuItem(config.menu, IDM_IMAGE_FILTERING, MF_BYCOMMAND | (config.filtering ? MF_CHECKED : MF_UNCHECKED));
-	CheckMenuItem(config.menu, IDM_IMAGE_ASPECTRATIO, MF_BYCOMMAND | (config.aspectRatio ? MF_CHECKED : MF_UNCHECKED));
-}
-
-LRESULT __stdcall MouseHook(INT nCode, WPARAM wParam, LPARAM lParam)
-{
-	if (nCode >= 0)
+	for (DWORD i = 0; i < RECOUNT; ++i, ++resList)
 	{
-		DirectDraw* ddraw = ddrawList;
-		while (ddraw)
+		if (!resList->width)
 		{
-			ddraw->CaptureMouse((UINT)wParam, (LPMSLLHOOKSTRUCT)lParam);
-			ddraw = ddraw->last;
+			resList->width = devMode->dmPelsWidth;
+			resList->height = devMode->dmPelsHeight;
+			resList->bpp = devMode->dmBitsPerPel;
+			resList->frequency = devMode->dmDisplayFrequency;
+			return i + 1;
+		}
+
+		if (resList->width == devMode->dmPelsWidth)
+		{
+			if (resList->height == devMode->dmPelsHeight)
+			{
+				BOOL succ = FALSE;
+				if (resList->bpp == 8 && resList->bpp == devMode->dmBitsPerPel)
+					succ = TRUE;
+				else if (resList->bpp != 8 && devMode->dmBitsPerPel != 8)
+				{
+					succ = TRUE;
+
+					if (resList->bpp <= devMode->dmBitsPerPel)
+						resList->bpp = devMode->dmBitsPerPel;
+				}
+
+				if (succ)
+				{
+					if (resList->frequency < devMode->dmDisplayFrequency)
+						resList->frequency = devMode->dmDisplayFrequency;
+
+					return i + 1;
+				}
+			}
 		}
 	}
 
-	return CallNextHookEx(OldMouseHook, nCode, wParam, lParam);
+	return 0;
 }
 
-VOID __fastcall SetCaptureMouse(BOOL state)
+VOID __fastcall UseShaderProgram(ShaderProgram* program, DWORD texSize)
 {
-	if (state)
+	if (!program->id)
 	{
-		if (config.mouseCapture && !OldMouseHook)
-			OldMouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseHook, hDllModule, NULL);
+		program->id = GLCreateProgram();
+
+		GLuint vShader = GL::CompileShaderSource(program->vertexName, program->version, GL_VERTEX_SHADER);
+		GLuint fShader = GL::CompileShaderSource(program->fragmentName, program->version, GL_FRAGMENT_SHADER);
+		{
+
+			GLAttachShader(program->id, vShader);
+			GLAttachShader(program->id, fShader);
+			{
+				GLLinkProgram(program->id);
+			}
+			GLDetachShader(program->id, fShader);
+			GLDetachShader(program->id, vShader);
+		}
+		GLDeleteShader(fShader);
+		GLDeleteShader(vShader);
+
+		GLUseProgram(program->id);
+		GLUniformMatrix4fv(GLGetUniformLocation(program->id, "mvp"), 1, GL_FALSE, program->mvp);
+		GLUniform1i(GLGetUniformLocation(program->id, "tex01"), GL_TEXTURE0 - GL_TEXTURE0);
+
+		GLint loc = GLGetUniformLocation(program->id, "pal01");
+		if (loc >= 0)
+			GLUniform1i(loc, GL_TEXTURE1 - GL_TEXTURE0);
+
+		loc = GLGetUniformLocation(program->id, "texSize");
+		if (loc >= 0)
+			GLUniform2f(loc, (FLOAT)texSize, (FLOAT)texSize);
 	}
 	else
-	{
-		if (OldMouseHook && UnhookWindowsHookEx(OldMouseHook))
-			OldMouseHook = NULL;
-	}
-}
-
-BOOL __stdcall EnumChildProc(HWND hDlg, LPARAM lParam)
-{
-	if ((GetWindowLong(hDlg, GWL_STYLE) & SS_ICON) == SS_ICON)
-		SendMessage(hDlg, STM_SETIMAGE, (WPARAM)IMAGE_ICON, (LPARAM)config.icon);
-	else
-		SendMessage(hDlg, WM_SETFONT, (WPARAM)config.font, TRUE);
-
-	return TRUE;
-}
-
-LRESULT __stdcall AboutProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	switch (uMsg)
-	{
-	case WM_INITDIALOG:
-	{
-		SetWindowLong(hDlg, GWL_EXSTYLE, NULL);
-		EnumChildWindows(hDlg, EnumChildProc, NULL);
-
-		CHAR email[50];
-		GetDlgItemText(hDlg, IDC_LNK_EMAIL, email, sizeof(email) - 1);
-		CHAR anchor[256];
-		StrPrint(anchor, "<A HREF=\"mailto:%s\">%s</A>", email, email);
-		SetDlgItemText(hDlg, IDC_LNK_EMAIL, anchor);
-
-		break;
-	}
-
-	case WM_NOTIFY:
-	{
-		if (((NMHDR*)lParam)->code == NM_CLICK && wParam == IDC_LNK_EMAIL)
-		{
-			NMLINK* pNMLink = (NMLINK*)lParam;
-			LITEM iItem = pNMLink->item;
-
-			CHAR url[MAX_PATH];
-			StrToAnsi(url, pNMLink->item.szUrl, sizeof(url) - 1);
-
-			SHELLEXECUTEINFO shExecInfo;
-			MemoryZero(&shExecInfo, sizeof(SHELLEXECUTEINFO));
-			shExecInfo.cbSize = sizeof(SHELLEXECUTEINFO);
-			shExecInfo.fMask = SEE_MASK_NOCLOSEPROCESS;
-			shExecInfo.lpFile = url;
-			shExecInfo.nShow = SW_SHOW;
-
-			ShellExecuteEx(&shExecInfo);
-		}
-
-		break;
-	}
-
-	case WM_COMMAND:
-	{
-		if (wParam == IDOK)
-			EndDialog(hDlg, TRUE);
-		break;
-	}
-
-	default:
-		break;
-	}
-
-	return DefWindowProc(hDlg, uMsg, wParam, lParam);
-}
-
-LRESULT __stdcall WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	switch (uMsg)
-	{
-	case WM_GETMINMAXINFO:
-	{
-		if (config.windowedMode)
-		{
-			RECT rect = { 0, 0, MIN_WIDTH, MIN_HEIGHT };
-			AdjustWindowRect(&rect, GetWindowLong(hWnd, GWL_STYLE), TRUE);
-
-			MINMAXINFO* mmi = (MINMAXINFO*)lParam;
-			mmi->ptMinTrackSize.x = rect.right - rect.left;
-			mmi->ptMinTrackSize.y = rect.bottom - rect.top;
-			mmi->ptMaxTrackSize.x = LONG_MAX >> 16;
-			mmi->ptMaxTrackSize.y = LONG_MAX >> 16;
-			mmi->ptMaxSize.x = LONG_MAX >> 16;
-			mmi->ptMaxSize.y = LONG_MAX >> 16;
-
-			return NULL;
-		}
-
-		return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
-	}
-
-	case WM_MOVE:
-	{
-		DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
-		if (ddraw && ddraw->hDraw)
-		{
-			DWORD stye = GetWindowLong(ddraw->hDraw, GWL_STYLE);
-			if (stye & WS_POPUP)
-			{
-				POINT point = { LOWORD(lParam), HIWORD(lParam) };
-				ScreenToClient(hWnd, &point);
-
-				RECT rect;
-				rect.left = point.x - LOWORD(lParam);
-				rect.top = point.y - HIWORD(lParam);
-				rect.right = rect.left + 256;
-				rect.bottom = rect.left + 256;
-
-				AdjustWindowRect(&rect, stye, TRUE);
-				SetWindowPos(ddraw->hDraw, NULL, rect.left, rect.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOREDRAW | SWP_NOREPOSITION | SWP_NOOWNERZORDER | SWP_NOACTIVATE | SWP_NOSENDCHANGING);
-			}
-			else
-				SetWindowPos(ddraw->hDraw, NULL, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOREDRAW | SWP_NOREPOSITION | SWP_NOOWNERZORDER | SWP_NOACTIVATE | SWP_NOSENDCHANGING);
-		}
-
-		return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
-	}
-
-	case WM_SIZE:
-	{
-		DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
-		if (ddraw)
-		{
-			if (ddraw->hDraw)
-				SetWindowPos(ddraw->hDraw, NULL, 0, 0, LOWORD(lParam), HIWORD(lParam), SWP_NOZORDER | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOREPOSITION | SWP_NOOWNERZORDER | SWP_NOACTIVATE | SWP_NOSENDCHANGING);
-
-			if (ddraw->dwMode)
-			{
-				ddraw->viewport.width = LOWORD(lParam);
-				ddraw->viewport.height = HIWORD(lParam);
-				ddraw->viewport.refresh = TRUE;
-			}
-		}
-
-		return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
-	}
-
-	case WM_DISPLAYCHANGE:
-	{
-		DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
-		if (ddraw)
-		{
-			DEVMODE devMode;
-			MemoryZero(&devMode, sizeof(DEVMODE));
-			devMode.dmSize = sizeof(DEVMODE);
-			ddraw->frequency = EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &devMode) && (devMode.dmFields & DM_DISPLAYFREQUENCY) ? devMode.dmDisplayFrequency : 0;
-		}
-
-		return DefWindowProc(hWnd, uMsg, wParam, lParam);
-	}
-
-	case WM_SETFOCUS:
-	case WM_KILLFOCUS:
-	case WM_ACTIVATE:
-	case WM_NCACTIVATE:
-		return DefWindowProc(hWnd, uMsg, wParam, lParam);
-
-	case WM_ACTIVATEAPP:
-	{
-		DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
-		if (ddraw && ddraw->dwMode)
-		{
-			if (!config.windowedMode)
-			{
-				if ((BOOL)wParam)
-				{
-					ddraw->SetFullscreenMode();
-					ddraw->RenderStart();
-				}
-				else
-				{
-					ddraw->RenderStop();
-					ChangeDisplaySettings(NULL, NULL);
-				}
-
-			}
-			else
-				SetCaptureMouse((BOOL)wParam);
-		}
-
-		return DefWindowProc(hWnd, uMsg, wParam, lParam);
-	}
-
-	case WM_COMMAND:
-	{
-		switch (wParam)
-		{
-		case IDM_WINDOW_FULLSCREEN:
-		{
-			DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
-			if (ddraw && ddraw->dwMode)
-			{
-				ddraw->RenderStop();
-				{
-					if (!config.windowedMode)
-						ddraw->SetWindowedMode();
-					else
-						ddraw->SetFullscreenMode();
-
-					config.windowedMode = !config.windowedMode;
-					Config::Set(CONFIG, "WindowedMode", config.windowedMode);
-					CheckMenu();
-				}
-				ddraw->RenderStart();
-			}
-			else
-				config.windowedMode = !config.windowedMode;
-
-			return NULL;
-		}
-
-		case IDM_WINDOW_VSYNC:
-		{
-			config.vSync = !config.vSync;
-			Config::Set(CONFIG, "VSync", config.vSync);
-			CheckMenu();
-
-			return NULL;
-		}
-
-		case IDM_WINDOW_FPSCOUNTER:
-		{
-			config.fpsCounter = !config.fpsCounter;
-			Config::Set(CONFIG, "FpsCounter", config.fpsCounter);
-			CheckMenu();
-			isFpsChanged = TRUE;
-
-			return NULL;
-		}
-
-		case IDM_WINDOW_MOUSECAPTURE:
-		{
-			config.mouseCapture = !config.mouseCapture;
-			Config::Set(CONFIG, "MouseCapture", config.mouseCapture);
-			CheckMenu();
-			SetCaptureMouse(config.mouseCapture);
-
-			return NULL;
-		}
-
-		case IDM_WINDOW_EXIT:
-		{
-			SendMessage(hWnd, WM_CLOSE, NULL, NULL);
-			return NULL;
-		}
-
-		case IDM_IMAGE_FILTERING:
-		{
-			config.filtering = !config.filtering;
-			Config::Set(CONFIG, "Filtering", config.filtering);
-			CheckMenu();
-
-			DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
-			if (ddraw && ddraw->dwMode)
-				ddraw->isStateChanged = TRUE;
-
-			return NULL;
-		}
-
-		case IDM_IMAGE_ASPECTRATIO:
-		{
-			config.aspectRatio = !config.aspectRatio;
-			Config::Set(CONFIG, "AspectRatio", config.aspectRatio);
-			CheckMenu();
-
-			DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
-			if (ddraw && ddraw->dwMode)
-				ddraw->viewport.refresh = TRUE;
-
-			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
-		}
-
-		case IDM_HELP_ABOUT:
-		{
-			INT_PTR res;
-			ULONG_PTR cookie = NULL;
-			if (hActCtx && hActCtx != INVALID_HANDLE_VALUE && !ActivateActCtxC(hActCtx, &cookie))
-				cookie = NULL;
-
-			res = DialogBoxParam(hDllModule, MAKEINTRESOURCE(IDD_ABOUT), hWnd, (DLGPROC)AboutProc, NULL);
-
-			if (cookie)
-				DeactivateActCtxC(0, cookie);
-
-			SetForegroundWindow(hWnd);
-			return NULL;
-		}
-
-		default:
-			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
-		}
-	}
-
-	case WM_KEYDOWN:
-	case WM_SYSKEYDOWN:
-	{
-		if (wParam == VK_F11 || wParam == VK_RETURN && (HIWORD(lParam) & KF_ALTDOWN))
-		{
-			WindowProc(hWnd, WM_COMMAND, IDM_WINDOW_FULLSCREEN, NULL);
-			return NULL;
-		}
-		else if (wParam == 'F' && (HIWORD(lParam) & KF_ALTDOWN))
-		{
-			WindowProc(hWnd, WM_COMMAND, IDM_WINDOW_FPSCOUNTER, NULL);
-			return NULL;
-		}
-		else if (wParam == 'M' && (HIWORD(lParam) & KF_ALTDOWN))
-		{
-			WindowProc(hWnd, WM_COMMAND, IDM_WINDOW_MOUSECAPTURE, NULL);
-			return NULL;
-		}
-		else if (wParam == VK_F1)
-		{
-			if (!config.windowedMode)
-				WindowProc(hWnd, WM_COMMAND, IDM_WINDOW_FULLSCREEN, NULL);
-
-			WindowProc(hWnd, WM_COMMAND, IDM_HELP_ABOUT, NULL);
-			return NULL;
-		}
-
-		return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
-	}
-
-	case WM_LBUTTONDOWN:
-	{
-		DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
-		if (ddraw)
-		{
-			ddraw->mbPressed |= MK_LBUTTON;
-			ddraw->ScaleMouse(uMsg, &lParam);
-		}
-
-		return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
-	}
-
-	case WM_RBUTTONDOWN:
-	{
-		DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
-		if (ddraw)
-		{
-			ddraw->mbPressed |= MK_RBUTTON;
-			ddraw->ScaleMouse(uMsg, &lParam);
-		}
-
-		return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
-	}
-
-	case WM_LBUTTONUP:
-	{
-		DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
-		if (ddraw)
-		{
-			ddraw->mbPressed ^= MK_LBUTTON;
-			ddraw->ScaleMouse(uMsg, &lParam);
-		}
-
-		return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
-	}
-
-	case WM_RBUTTONUP:
-	{
-		DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
-		if (ddraw)
-		{
-			ddraw->mbPressed ^= MK_RBUTTON;
-			ddraw->ScaleMouse(uMsg, &lParam);
-		}
-
-		return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
-	}
-
-	case WM_LBUTTONDBLCLK:
-	case WM_MBUTTONDOWN:
-	case WM_MBUTTONUP:
-	case WM_MBUTTONDBLCLK:
-	case WM_RBUTTONDBLCLK:
-	case WM_MOUSEMOVE:
-	{
-		DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
-		if (ddraw)
-			ddraw->ScaleMouse(uMsg, &lParam);
-
-		return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
-	}
-
-	case WM_SETCURSOR:
-	{
-		if (LOWORD(lParam) == HTCLIENT)
-		{
-			if (!config.windowedMode || !config.aspectRatio)
-			{
-				SetCursor(NULL);
-				return TRUE;
-			}
-			else
-			{
-				DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
-				if (ddraw)
-				{
-					POINT p;
-					GetCursorPos(&p);
-					ScreenToClient(hWnd, &p);
-
-					if (p.x >= ddraw->viewport.rectangle.x && p.x < ddraw->viewport.rectangle.x + ddraw->viewport.rectangle.width &&
-						p.y >= ddraw->viewport.rectangle.y && p.y < ddraw->viewport.rectangle.y + ddraw->viewport.rectangle.height)
-						SetCursor(NULL);
-					else
-						SetCursor(config.cursor);
-
-					return TRUE;
-				}
-			}
-		}
-		return DefWindowProc(hWnd, uMsg, wParam, lParam);
-	}
-
-	default:
-		return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
-	}
-
-	return NULL;
-}
-
-LRESULT __stdcall PanelProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	switch (uMsg)
-	{
-	case WM_MOUSEMOVE:
-	case WM_LBUTTONDOWN:
-	case WM_LBUTTONUP:
-	case WM_LBUTTONDBLCLK:
-	case WM_RBUTTONDOWN:
-	case WM_RBUTTONUP:
-	case WM_RBUTTONDBLCLK:
-	case WM_MBUTTONDOWN:
-	case WM_MBUTTONUP:
-	case WM_MBUTTONDBLCLK:
-	case WM_SYSCOMMAND:
-	case WM_SYSKEYDOWN:
-	case WM_SYSKEYUP:
-	case WM_KEYDOWN:
-	case WM_KEYUP:
-	case WM_CHAR:
-	case WM_SETCURSOR:
-		return WindowProc(GetParent(hWnd), uMsg, wParam, lParam);
-
-	default:
-		return CallWindowProc(OldPanelProc, hWnd, uMsg, wParam, lParam);
-	}
+		GLUseProgram(program->id);
 }
 
 DWORD __stdcall RenderThread(LPVOID lpParameter)
@@ -609,7 +190,7 @@ DWORD __stdcall RenderThread(LPVOID lpParameter)
 						glVersion = GL_VER_1_1;
 				}
 
-				CheckMenu();
+				Window::CheckMenu();
 				if (glVersion >= GL_VER_2_0)
 					ddraw->RenderNew();
 				else
@@ -964,43 +545,6 @@ VOID DirectDraw::RenderOld()
 		MemoryFree(frames);
 	}
 	MemoryFree(pixelBuffer);
-}
-
-VOID __fastcall UseShaderProgram(ShaderProgram* program, DWORD texSize)
-{
-	if (!program->id)
-	{
-		program->id = GLCreateProgram();
-
-		GLuint vShader = GL::CompileShaderSource(program->vertexName, program->version, GL_VERTEX_SHADER);
-		GLuint fShader = GL::CompileShaderSource(program->fragmentName, program->version, GL_FRAGMENT_SHADER);
-		{
-
-			GLAttachShader(program->id, vShader);
-			GLAttachShader(program->id, fShader);
-			{
-				GLLinkProgram(program->id);
-			}
-			GLDetachShader(program->id, fShader);
-			GLDetachShader(program->id, vShader);
-		}
-		GLDeleteShader(fShader);
-		GLDeleteShader(vShader);
-
-		GLUseProgram(program->id);
-		GLUniformMatrix4fv(GLGetUniformLocation(program->id, "mvp"), 1, GL_FALSE, program->mvp);
-		GLUniform1i(GLGetUniformLocation(program->id, "tex01"), GL_TEXTURE0 - GL_TEXTURE0);
-
-		GLint loc = GLGetUniformLocation(program->id, "pal01");
-		if (loc >= 0)
-			GLUniform1i(loc, GL_TEXTURE1 - GL_TEXTURE0);
-
-		loc = GLGetUniformLocation(program->id, "texSize");
-		if (loc >= 0)
-			GLUniform2f(loc, (FLOAT)texSize, (FLOAT)texSize);
-	}
-	else
-		GLUseProgram(program->id);
 }
 
 VOID DirectDraw::RenderNew()
@@ -1407,7 +951,7 @@ VOID DirectDraw::RenderStart()
 			NULL);
 	}
 
-	OldPanelProc = (WNDPROC)SetWindowLongPtr(this->hDraw, GWLP_WNDPROC, (LONG_PTR)PanelProc);
+	Window::SetCapturePanel(this->hDraw);
 
 	SetClassLongPtr(this->hDraw, GCLP_HBRBACKGROUND, NULL);
 	RedrawWindow(this->hDraw, NULL, NULL, RDW_INVALIDATE);
@@ -1441,50 +985,9 @@ VOID DirectDraw::RenderStop()
 
 	if (wasFull)
 		GL::ResetContext();
-}
 
-DWORD __fastcall AddDisplayMode(DEVMODE* devMode)
-{
-	DisplayMode* resList = resolutionsList;
-
-	for (DWORD i = 0; i < RECOUNT; ++i, ++resList)
-	{
-		if (!resList->width)
-		{
-			resList->width = devMode->dmPelsWidth;
-			resList->height = devMode->dmPelsHeight;
-			resList->bpp = devMode->dmBitsPerPel;
-			resList->frequency = devMode->dmDisplayFrequency;
-			return i + 1;
-		}
-
-		if (resList->width == devMode->dmPelsWidth)
-		{
-			if (resList->height == devMode->dmPelsHeight)
-			{
-				BOOL succ = FALSE;
-				if (resList->bpp == 8 && resList->bpp == devMode->dmBitsPerPel)
-					succ = TRUE;
-				else if (resList->bpp != 8 && devMode->dmBitsPerPel != 8)
-				{
-					succ = TRUE;
-
-					if (resList->bpp <= devMode->dmBitsPerPel)
-						resList->bpp = devMode->dmBitsPerPel;
-				}
-
-				if (succ)
-				{
-					if (resList->frequency < devMode->dmDisplayFrequency)
-						resList->frequency = devMode->dmDisplayFrequency;
-
-					return i + 1;
-				}
-			}
-		}
-	}
-
-	return 0;
+	glVersion = NULL;
+	Window::CheckMenu();
 }
 
 DirectDraw::DirectDraw(DirectDraw* lastObj)
@@ -1768,12 +1271,10 @@ HRESULT DirectDraw::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP)
 		if (!(GetWindowLong(this->hWnd, GWL_STYLE) & WS_BORDER))
 			this->SetWindowedMode();
 		else
-			SetCaptureMouse(TRUE);
+			Window::SetCaptureMouse(TRUE);
 	}
 	else
 		this->SetFullscreenMode();
-
-	CheckMenu();
 
 	this->RenderStart();
 
@@ -1809,7 +1310,7 @@ VOID DirectDraw::SetFullscreenMode()
 		SetWindowPos(this->hWnd, NULL, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), NULL);
 		SetForegroundWindow(this->hWnd);
 
-		SetCaptureMouse(FALSE);
+		Window::SetCaptureMouse(FALSE);
 
 		if (ChangeDisplaySettingsEx(NULL, &devMode, NULL, CDS_FULLSCREEN | CDS_RESET, NULL) == DISP_CHANGE_SUCCESSFUL)
 		{
@@ -1831,7 +1332,7 @@ VOID DirectDraw::SetWindowedMode()
 {
 	ChangeDisplaySettings(NULL, NULL);
 
-	SetCaptureMouse(TRUE);
+	Window::SetCaptureMouse(TRUE);
 
 	if (!this->windowPlacement.length)
 	{
@@ -1880,9 +1381,6 @@ HRESULT DirectDraw::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		this->hWnd = hWnd;
 		this->hDc = NULL;
 		this->mbPressed = NULL;
-
-		if (!OldWindowProc)
-			OldWindowProc = (WNDPROC)SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)WindowProc);
 	}
 
 	return DD_OK;

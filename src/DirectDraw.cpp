@@ -1190,7 +1190,10 @@ HRESULT DirectDraw::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceD
 		{
 			DWORD idx;
 
-			if (devMode.dmBitsPerPel != 8)
+			if (devMode.dmBitsPerPel != 8 &&
+				(devMode.dmPelsWidth == 1024 && devMode.dmPelsHeight == 768 ||
+					devMode.dmPelsWidth == 800 && devMode.dmPelsHeight == 600 ||
+					devMode.dmPelsWidth == 640 && devMode.dmPelsHeight == 480))
 			{
 				idx = AddDisplayMode(&devMode);
 				if (idx)

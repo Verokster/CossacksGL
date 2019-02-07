@@ -269,6 +269,7 @@ namespace GL
 		LoadFunction(buffer, PREFIX_GL, "Uniform2f", (PROC*)&GLUniform2f);
 		LoadFunction(buffer, PREFIX_GL, "UniformMatrix4fv", (PROC*)&GLUniformMatrix4fv);
 
+		glVersion = NULL;
 		glCapsClampToEdge = GL_CLAMP;
 		glCapsBGR = TRUE;
 
@@ -310,9 +311,6 @@ namespace GL
 						charIdx = 0;
 					}
 				}
-
-				if (glVersion < GL_VER_1_1)
-					glVersion = GL_VER_1_1;
 			}
 			else
 				glVersion = GL_VER_1_1;
@@ -338,10 +336,10 @@ namespace GL
 				glCapsBGR = StrStr(glExtensions, "GL_EXT_bgr") != NULL;
 		}
 		else
-		{
-			glVersion = GL_VER_1_1;
 			glCapsBGR = FALSE;
-		}
+
+		if (!glVersion)
+			glVersion = GL_VER_1_1;
 	}
 
 	VOID __fastcall ResetPixelFormatDescription(PIXELFORMATDESCRIPTOR* pfd)

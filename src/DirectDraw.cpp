@@ -1303,18 +1303,43 @@ HRESULT DirectDraw::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceD
 		devMode.dmSize = sizeof(DEVMODE);
 	}
 
-	DDSURFACEDESC ddSurfaceDesc;
-	DisplayMode* mode = resolutionsList;
-	while (count--)
+	DisplayMode min, max;
+	min.frequency = min.bpp = min.height = min.width = 0x00000000;
+	max.frequency = max.bpp = max.height = max.width = 0xFFFFFFFF;
+
+	DisplayMode* mode = &max;
+	DWORD modesCount = count;
+	while (modesCount--)
 	{
+		DisplayMode* stored = &min;
+		DisplayMode* check = resolutionsList;
+		DWORD checksCount = count;
+		while (checksCount--)
+		{
+			if ((check->width < mode->width || check->width == mode->width &&
+				(check->height < mode->height || check->height == mode->height &&
+				(check->bpp < mode->bpp || check->bpp == mode->bpp &&
+				check->frequency < mode->frequency)))
+				&&
+				(check->width > stored->width || check->width == stored->width &&
+				(check->height > stored->height || check->height == stored->height &&
+				(check->bpp > stored->bpp || check->bpp == stored->bpp &&
+				check->frequency > stored->frequency))))
+				stored = check;
+
+			++check;
+		}
+
+		mode = stored;
+
+		DDSURFACEDESC ddSurfaceDesc;
 		ddSurfaceDesc.dwWidth = mode->width;
 		ddSurfaceDesc.dwHeight = mode->height;
 		ddSurfaceDesc.ddpfPixelFormat.dwRGBBitCount = mode->bpp;
+		ddSurfaceDesc.dwRefreshRate = mode->frequency;
 
 		if (!lpEnumModesCallback(&ddSurfaceDesc, NULL))
 			break;
-
-		++mode;
 	}
 
 	return DD_OK;

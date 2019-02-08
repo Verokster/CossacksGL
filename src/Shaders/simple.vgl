@@ -33,7 +33,7 @@ uniform mat4 mvp;
 	#define COMPAT_OUT varying 
 #endif
 
-COMPAT_IN vec4 vCoord;
+COMPAT_IN vec2 vCoord;
 COMPAT_IN vec2 vTexCoord;
 COMPAT_OUT vec2 fTexCoord;
 

@@ -39,6 +39,6 @@ COMPAT_IN vec2 vTexCoord;
 COMPAT_OUT vec2 fTexCoord;
 
 void main() {
-	gl_Position = mvp * vec4(vCoord.xy, 0.0, 1.0);
+	gl_Position = mvp * vec4(vCoord, 0.0, 1.0);
 	fTexCoord = vTexCoord * texSize - 0.5;
 }

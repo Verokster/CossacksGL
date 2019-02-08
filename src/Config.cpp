@@ -51,6 +51,29 @@ namespace Config
 			OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
 			DEFAULT_PITCH | FF_DONTCARE, TEXT("MS Shell Dlg"));
 
+		config.singleThread = TRUE;
+		DWORD processMask, systemMask;
+		if (GetProcessAffinityMask(GetCurrentProcess(), &processMask, &systemMask))
+		{
+			BOOL isSingle = FALSE;
+			DWORD count = sizeof(DWORD) << 3;
+			do
+			{
+				if (processMask & 1)
+				{
+					if (isSingle)
+					{
+						config.singleThread = FALSE;
+						break;
+					}
+					else
+						isSingle = TRUE;
+				}
+
+				processMask >>= 1;
+			} while (--count);
+		}
+
 		if (!config.isExist)
 		{
 			config.windowedMode = TRUE;

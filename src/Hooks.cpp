@@ -451,6 +451,14 @@ namespace Hooks
 			return GetProcAddress(hModule, lpProcName);
 	}
 
+	BOOL __stdcall PeekMessageHook(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg)
+	{
+		BOOL res = PeekMessageA(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg);
+		if (res && config.singleThread)
+			Sleep(0);
+		return res;
+	}
+
 	VOID Load()
 	{
 		headDOS = (PIMAGE_DOS_HEADER)GetModuleHandle(NULL);
@@ -473,6 +481,7 @@ namespace Hooks
 			PatchFunction(&file, "MessageBoxA", MessageBoxHook);
 			PatchFunction(&file, "ClientToScreen", ClientToScreenHook);
 			PatchFunction(&file, "GetProcAddress", GetProcAddressHook);
+			PatchFunction(&file, "PeekMessageA", PeekMessageHook);
 		}
 
 		if (file.address)

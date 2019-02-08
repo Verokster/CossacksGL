@@ -291,15 +291,40 @@ VOID DirectDraw::RenderOld()
 
 			FpsCounter* fpsCounter = new FpsCounter(FPS_ACCURACY);
 			{
-				BOOL isVSync = FALSE;
-				if (WGLSwapInterval)
-					WGLSwapInterval(0);
+				BOOL isVSync;
+				DOUBLE fpsSync, nextSyncTime;
+				if (config.singleThread)
+				{
+					fpsSync = 1.0f / (this->dwMode->frequency ? this->dwMode->frequency : 60);
+					nextSyncTime = 0.0f;
+				}
+				else
+				{
+					isVSync = FALSE;
+					if (WGLSwapInterval && !config.singleThread)
+						WGLSwapInterval(0);
+				}
 
 				do
 				{
 					if (this->dwMode->bpp == 8 || !mciVideo.deviceId)
 					{
-						if (WGLSwapInterval)
+						BOOL isValid = TRUE;
+						if (config.singleThread)
+						{
+							LONGLONG qp;
+							QueryPerformanceFrequency((LARGE_INTEGER*)&qp);
+							DOUBLE timerResolution = (DOUBLE)qp;
+
+							QueryPerformanceCounter((LARGE_INTEGER*)&qp);
+							DOUBLE currTime = (DOUBLE)qp / timerResolution;
+
+							if (currTime >= nextSyncTime)
+								nextSyncTime += fpsSync * (1.0f + (FLOAT)DWORD((currTime - nextSyncTime) / fpsSync));
+							else
+								isValid = FALSE;
+						}
+						else if (WGLSwapInterval)
 						{
 							if (!isVSync)
 							{
@@ -319,208 +344,214 @@ VOID DirectDraw::RenderOld()
 							}
 						}
 
-						this->CheckView();
-
-						if (this->isStateChanged)
+						if (isValid)
 						{
-							this->isStateChanged = FALSE;
-							GLint filter = config.windowedMode && config.filtering ? GL_LINEAR : GL_NEAREST;
-							GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
-							GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
-						}
+							this->CheckView();
 
-						if (this->dwMode->bpp == 8)
-						{
-							if (config.fpsCounter)
+							if (this->isStateChanged)
 							{
-								if (isFpsChanged)
-								{
-									isFpsChanged = FALSE;
-									fpsCounter->Reset();
-								}
-
-								fpsCounter->Calculate();
+								this->isStateChanged = FALSE;
+								GLint filter = config.windowedMode && config.filtering ? GL_LINEAR : GL_NEAREST;
+								GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+								GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
 							}
 
-							if (glCapsSharedPalette && this->isPalChanged)
+							if (this->dwMode->bpp == 8)
 							{
-								this->isPalChanged = FALSE;
-								GLColorTable(GL_TEXTURE_2D, GL_RGBA8, 256, GL_RGBA, GL_UNSIGNED_BYTE, this->palette);
-							}
-
-							DWORD count = frameCount;
-							frame = frames;
-							while (count--)
-							{
-								GLBindTexture(GL_TEXTURE_2D, frame->id);
-
-								if (GLColorTable)
+								if (config.fpsCounter)
 								{
-									if (!glCapsSharedPalette)
-										GLColorTable(GL_TEXTURE_2D, GL_RGBA8, 256, GL_RGBA, GL_UNSIGNED_BYTE, this->palette);
-
-									BYTE* pix = (BYTE*)pixelBuffer;
-									for (INT y = frame->rect.y; y < frame->vSize.height; ++y)
+									if (isFpsChanged)
 									{
-										BYTE* idx = this->indexBuffer + y * this->dwMode->width + frame->rect.x;
-										MemoryCopy(pix, idx, frame->rect.width);
-										pix += frame->rect.width;
+										isFpsChanged = FALSE;
+										fpsCounter->Reset();
 									}
 
-									if (config.fpsCounter && count == frameCount - 1)
+									fpsCounter->Calculate();
+								}
+
+								if (glCapsSharedPalette && this->isPalChanged)
+								{
+									this->isPalChanged = FALSE;
+									GLColorTable(GL_TEXTURE_2D, GL_RGBA8, 256, GL_RGBA, GL_UNSIGNED_BYTE, this->palette);
+								}
+
+								DWORD count = frameCount;
+								frame = frames;
+								while (count--)
+								{
+									GLBindTexture(GL_TEXTURE_2D, frame->id);
+
+									if (GLColorTable)
 									{
-										DWORD fps = fpsCounter->value;
-										DWORD digCount = 0;
-										DWORD current = fps;
-										do
-										{
-											++digCount;
-											current = current / 10;
-										} while (current);
+										if (!glCapsSharedPalette)
+											GLColorTable(GL_TEXTURE_2D, GL_RGBA8, 256, GL_RGBA, GL_UNSIGNED_BYTE, this->palette);
 
-										DWORD dcount = digCount;
-										current = fps;
-										do
+										BYTE* pix = (BYTE*)pixelBuffer;
+										for (INT y = frame->rect.y; y < frame->vSize.height; ++y)
 										{
-											WORD* lpDig = (WORD*)counters[current % 10];
+											BYTE* idx = this->indexBuffer + y * this->dwMode->width + frame->rect.x;
+											MemoryCopy(pix, idx, frame->rect.width);
+											pix += frame->rect.width;
+										}
 
-											for (DWORD y = 0; y < FPS_HEIGHT; ++y)
+										if (config.fpsCounter && count == frameCount - 1)
+										{
+											DWORD fps = fpsCounter->value;
+											DWORD digCount = 0;
+											DWORD current = fps;
+											do
 											{
-												BYTE* pix = (BYTE*)pixelBuffer + (FPS_Y + y) * frame->rect.width +
-													FPS_X + FPS_WIDTH * (dcount - 1);
+												++digCount;
+												current = current / 10;
+											} while (current);
 
-												WORD check = *lpDig++;
-												DWORD width = FPS_WIDTH;
-												do
+											DWORD dcount = digCount;
+											current = fps;
+											do
+											{
+												WORD* lpDig = (WORD*)counters[current % 10];
+
+												for (DWORD y = 0; y < FPS_HEIGHT; ++y)
 												{
-													if (check & 1)
-														*pix = 0xFF;
-													++pix;
-													check >>= 1;
-												} while (--width);
-											}
+													BYTE* pix = (BYTE*)pixelBuffer + (FPS_Y + y) * frame->rect.width +
+														FPS_X + FPS_WIDTH * (dcount - 1);
 
-											current = current / 10;
-										} while (--dcount);
+													WORD check = *lpDig++;
+													DWORD width = FPS_WIDTH;
+													do
+													{
+														if (check & 1)
+															*pix = 0xFF;
+														++pix;
+														check >>= 1;
+													} while (--width);
+												}
+
+												current = current / 10;
+											} while (--dcount);
+										}
+
+										GLTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->rect.width, frame->rect.height, GL_COLOR_INDEX, GL_UNSIGNED_BYTE, pixelBuffer);
+									}
+									else
+									{
+										DWORD* pix = (DWORD*)pixelBuffer;
+										for (INT y = frame->rect.y; y < frame->vSize.height; ++y)
+										{
+											BYTE* idx = this->indexBuffer + y * this->dwMode->width + frame->rect.x;
+											for (INT x = frame->rect.x; x < frame->vSize.width; ++x)
+												*pix++ = this->palette[*idx++];
+										}
+
+										if (config.fpsCounter && count == frameCount - 1)
+										{
+											DWORD fps = fpsCounter->value;
+											DWORD digCount = 0;
+											DWORD current = fps;
+											do
+											{
+												++digCount;
+												current = current / 10;
+											} while (current);
+
+											DWORD dcount = digCount;
+											current = fps;
+											do
+											{
+												DWORD digit = current % 10;
+												WORD* lpDig = (WORD*)counters[digit];
+
+												for (DWORD y = 0; y < FPS_HEIGHT; ++y)
+												{
+													DWORD* pix = (DWORD*)pixelBuffer + (FPS_Y + y) * frame->rect.width +
+														FPS_X + FPS_WIDTH * (dcount - 1);
+
+													WORD check = *lpDig++;
+													DWORD width = FPS_WIDTH;
+													do
+													{
+														if (check & 1)
+															*pix = 0xFFFFFFFF;
+														++pix;
+														check >>= 1;
+													} while (--width);
+												}
+
+												current = current / 10;
+											} while (--dcount);
+										}
+
+										GLTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->rect.width, frame->rect.height, GL_RGBA, GL_UNSIGNED_BYTE, pixelBuffer);
 									}
 
-									GLTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->rect.width, frame->rect.height, GL_COLOR_INDEX, GL_UNSIGNED_BYTE, pixelBuffer);
+									GLBegin(GL_TRIANGLE_FAN);
+									{
+										GLTexCoord2f(0.0, 0.0);
+										GLVertex2s(LOWORD(frame->rect.x), LOWORD(frame->rect.y));
+
+										GLTexCoord2f(frame->tSize.width, 0.0);
+										GLVertex2s(LOWORD(frame->vSize.width), LOWORD(frame->rect.y));
+
+										GLTexCoord2f(frame->tSize.width, frame->tSize.height);
+										GLVertex2s(LOWORD(frame->vSize.width), LOWORD(frame->vSize.height));
+
+										GLTexCoord2f(0.0, frame->tSize.height);
+										GLVertex2s(LOWORD(frame->rect.x), LOWORD(frame->vSize.height));
+									}
+									GLEnd();
+									++frame;
 								}
-								else
+							}
+							else
+							{
+								DWORD count = frameCount;
+								frame = frames;
+								while (count--)
 								{
+									GLBindTexture(GL_TEXTURE_2D, frame->id);
+
 									DWORD* pix = (DWORD*)pixelBuffer;
 									for (INT y = frame->rect.y; y < frame->vSize.height; ++y)
 									{
-										BYTE* idx = this->indexBuffer + y * this->dwMode->width + frame->rect.x;
+										DWORD* idx = (DWORD*)this->indexBuffer + y * this->dwMode->width + frame->rect.x;
 										for (INT x = frame->rect.x; x < frame->vSize.width; ++x)
-											*pix++ = this->palette[*idx++];
-									}
-
-									if (config.fpsCounter && count == frameCount - 1)
-									{
-										DWORD fps = fpsCounter->value;
-										DWORD digCount = 0;
-										DWORD current = fps;
-										do
-										{
-											++digCount;
-											current = current / 10;
-										} while (current);
-
-										DWORD dcount = digCount;
-										current = fps;
-										do
-										{
-											DWORD digit = current % 10;
-											WORD* lpDig = (WORD*)counters[digit];
-
-											for (DWORD y = 0; y < FPS_HEIGHT; ++y)
-											{
-												DWORD* pix = (DWORD*)pixelBuffer + (FPS_Y + y) * frame->rect.width +
-													FPS_X + FPS_WIDTH * (dcount - 1);
-
-												WORD check = *lpDig++;
-												DWORD width = FPS_WIDTH;
-												do
-												{
-													if (check & 1)
-														*pix = 0xFFFFFFFF;
-													++pix;
-													check >>= 1;
-												} while (--width);
-											}
-
-											current = current / 10;
-										} while (--dcount);
+											*pix++ = *idx++;
 									}
 
 									GLTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->rect.width, frame->rect.height, GL_RGBA, GL_UNSIGNED_BYTE, pixelBuffer);
+
+									GLBegin(GL_TRIANGLE_FAN);
+									{
+										GLTexCoord2f(0.0, 0.0);
+										GLVertex2s(LOWORD(frame->rect.x), LOWORD(frame->rect.y));
+
+										GLTexCoord2f(frame->tSize.width, 0.0);
+										GLVertex2s(LOWORD(frame->vSize.width), LOWORD(frame->rect.y));
+
+										GLTexCoord2f(frame->tSize.width, frame->tSize.height);
+										GLVertex2s(LOWORD(frame->vSize.width), LOWORD(frame->vSize.height));
+
+										GLTexCoord2f(0.0, frame->tSize.height);
+										GLVertex2s(LOWORD(frame->rect.x), LOWORD(frame->vSize.height));
+									}
+									GLEnd();
+									++frame;
 								}
-
-								GLBegin(GL_TRIANGLE_FAN);
-								{
-									GLTexCoord2f(0.0, 0.0);
-									GLVertex2s(LOWORD(frame->rect.x), LOWORD(frame->rect.y));
-
-									GLTexCoord2f(frame->tSize.width, 0.0);
-									GLVertex2s(LOWORD(frame->vSize.width), LOWORD(frame->rect.y));
-
-									GLTexCoord2f(frame->tSize.width, frame->tSize.height);
-									GLVertex2s(LOWORD(frame->vSize.width), LOWORD(frame->vSize.height));
-
-									GLTexCoord2f(0.0, frame->tSize.height);
-									GLVertex2s(LOWORD(frame->rect.x), LOWORD(frame->vSize.height));
-								}
-								GLEnd();
-								++frame;
 							}
-						}
-						else
-						{
-							DWORD count = frameCount;
-							frame = frames;
-							while (count--)
+
+							SwapBuffers(this->hDc);
+							if (isVSync)
+								GLFinish();
+
+							if (this->isTakeSnapshot)
 							{
-								GLBindTexture(GL_TEXTURE_2D, frame->id);
-
-								DWORD* pix = (DWORD*)pixelBuffer;
-								for (INT y = frame->rect.y; y < frame->vSize.height; ++y)
-								{
-									DWORD* idx = (DWORD*)this->indexBuffer + y * this->dwMode->width + frame->rect.x;
-									for (INT x = frame->rect.x; x < frame->vSize.width; ++x)
-										*pix++ = *idx++;
-								}
-
-								GLTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frame->rect.width, frame->rect.height, GL_RGBA, GL_UNSIGNED_BYTE, pixelBuffer);
-
-								GLBegin(GL_TRIANGLE_FAN);
-								{
-									GLTexCoord2f(0.0, 0.0);
-									GLVertex2s(LOWORD(frame->rect.x), LOWORD(frame->rect.y));
-
-									GLTexCoord2f(frame->tSize.width, 0.0);
-									GLVertex2s(LOWORD(frame->vSize.width), LOWORD(frame->rect.y));
-
-									GLTexCoord2f(frame->tSize.width, frame->tSize.height);
-									GLVertex2s(LOWORD(frame->vSize.width), LOWORD(frame->vSize.height));
-
-									GLTexCoord2f(0.0, frame->tSize.height);
-									GLVertex2s(LOWORD(frame->rect.x), LOWORD(frame->vSize.height));
-								}
-								GLEnd();
-								++frame;
+								this->isTakeSnapshot = FALSE;
+								this->TakeScreenshot();
 							}
 						}
 
-						SwapBuffers(this->hDc);
-						if (isVSync)
-							GLFinish();
-
-						if (this->isTakeSnapshot)
-						{
-							this->isTakeSnapshot = FALSE;
-							this->TakeScreenshot();
-						}
+						if (config.singleThread)
+							Sleep(0);
 					}
 					else
 					{
@@ -613,10 +644,20 @@ VOID DirectDraw::RenderNew()
 
 				FpsCounter* fpsCounter = new FpsCounter(FPS_ACCURACY);
 				{
-					BOOL isVSync = FALSE;
-					if (WGLSwapInterval)
-						WGLSwapInterval(0);
-
+					BOOL isVSync;
+					DOUBLE fpsSync, nextSyncTime;
+					if (config.singleThread)
+					{
+						fpsSync = 1.0f / (this->dwMode->frequency ? this->dwMode->frequency : 60);
+						nextSyncTime = 0.0f;
+					}
+					else
+					{
+						isVSync = FALSE;
+						if (WGLSwapInterval && !config.singleThread)
+							WGLSwapInterval(0);
+					}
+					
 					if (this->dwMode->bpp == 8)
 					{
 						GLuint textures[2];
@@ -649,7 +690,22 @@ VOID DirectDraw::RenderNew()
 							{
 								do
 								{
-									if (WGLSwapInterval)
+									BOOL isValid = TRUE;
+									if (config.singleThread)
+									{
+										LONGLONG qp;
+										QueryPerformanceFrequency((LARGE_INTEGER*)&qp);
+										DOUBLE timerResolution = (DOUBLE)qp;
+
+										QueryPerformanceCounter((LARGE_INTEGER*)&qp);
+										DOUBLE currTime = (DOUBLE)qp / timerResolution;
+
+										if (currTime >= nextSyncTime)
+											nextSyncTime += fpsSync * (1.0f + (FLOAT)DWORD((currTime - nextSyncTime) / fpsSync));
+										else
+											isValid = FALSE;
+									}
+									else if (WGLSwapInterval)
 									{
 										if (!isVSync)
 										{
@@ -669,91 +725,97 @@ VOID DirectDraw::RenderNew()
 										}
 									}
 
-									if (config.fpsCounter)
+									if (isValid)
 									{
-										if (isFpsChanged)
+										if (config.fpsCounter)
 										{
-											isFpsChanged = FALSE;
-											fpsCounter->Reset();
-										}
-
-										fpsCounter->Calculate();
-									}
-
-									this->CheckView();
-
-									if (this->isStateChanged)
-									{
-										this->isStateChanged = FALSE;
-										UseShaderProgram(config.windowedMode && config.filtering ? program = &shaders.linear : &shaders.nearest, maxTexSize);
-									}
-
-									if (this->isPalChanged)
-									{
-										this->isPalChanged = FALSE;
-
-										GLActiveTexture(GL_TEXTURE1);
-										GLBindTexture(GL_TEXTURE_1D, paletteId);
-										GLTexSubImage1D(GL_TEXTURE_1D, 0, 0, 256, GL_RGBA, GL_UNSIGNED_BYTE, this->palette);
-
-										GLActiveTexture(GL_TEXTURE0);
-										GLBindTexture(GL_TEXTURE_2D, indicesId);
-									}
-
-									GLTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, this->dwMode->width, this->dwMode->height, GL_ALPHA, GL_UNSIGNED_BYTE, this->indexBuffer);
-
-									if (config.fpsCounter)
-									{
-										DWORD fps = fpsCounter->value;
-										DWORD digCount = 0;
-										DWORD current = fps;
-										do
-										{
-											++digCount;
-											current = current / 10;
-										} while (current);
-
-										DWORD dcount = digCount;
-										current = fps;
-										do
-										{
-											DWORD digit = current % 10;
-											WORD* lpDig = (WORD*)counters[digit];
-
-											for (DWORD y = 0; y < FPS_HEIGHT; ++y)
+											if (isFpsChanged)
 											{
-												BYTE* idx = this->indexBuffer + (FPS_Y + y) * this->dwMode->width +
-													FPS_X + FPS_WIDTH * (dcount - 1);
-
-												BYTE* pix = (BYTE*)pixelBuffer + y * FPS_WIDTH * digCount +
-													FPS_WIDTH * (dcount - 1);
-
-												WORD check = *lpDig++;
-												DWORD width = FPS_WIDTH;
-												do
-												{
-													*pix++ = (check & 1) ? 0xFF : *idx;
-													++idx;
-													check >>= 1;
-												} while (--width);
+												isFpsChanged = FALSE;
+												fpsCounter->Reset();
 											}
 
-											current = current / 10;
-										} while (--dcount);
+											fpsCounter->Calculate();
+										}
 
-										GLTexSubImage2D(GL_TEXTURE_2D, 0, FPS_X, FPS_Y, FPS_WIDTH * digCount, FPS_HEIGHT, GL_ALPHA, GL_UNSIGNED_BYTE, pixelBuffer);
+										this->CheckView();
+
+										if (this->isStateChanged)
+										{
+											this->isStateChanged = FALSE;
+											UseShaderProgram(config.windowedMode && config.filtering ? program = &shaders.linear : &shaders.nearest, maxTexSize);
+										}
+
+										if (this->isPalChanged)
+										{
+											this->isPalChanged = FALSE;
+
+											GLActiveTexture(GL_TEXTURE1);
+											GLBindTexture(GL_TEXTURE_1D, paletteId);
+											GLTexSubImage1D(GL_TEXTURE_1D, 0, 0, 256, GL_RGBA, GL_UNSIGNED_BYTE, this->palette);
+
+											GLActiveTexture(GL_TEXTURE0);
+											GLBindTexture(GL_TEXTURE_2D, indicesId);
+										}
+
+										GLTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, this->dwMode->width, this->dwMode->height, GL_ALPHA, GL_UNSIGNED_BYTE, this->indexBuffer);
+
+										if (config.fpsCounter)
+										{
+											DWORD fps = fpsCounter->value;
+											DWORD digCount = 0;
+											DWORD current = fps;
+											do
+											{
+												++digCount;
+												current = current / 10;
+											} while (current);
+
+											DWORD dcount = digCount;
+											current = fps;
+											do
+											{
+												DWORD digit = current % 10;
+												WORD* lpDig = (WORD*)counters[digit];
+
+												for (DWORD y = 0; y < FPS_HEIGHT; ++y)
+												{
+													BYTE* idx = this->indexBuffer + (FPS_Y + y) * this->dwMode->width +
+														FPS_X + FPS_WIDTH * (dcount - 1);
+
+													BYTE* pix = (BYTE*)pixelBuffer + y * FPS_WIDTH * digCount +
+														FPS_WIDTH * (dcount - 1);
+
+													WORD check = *lpDig++;
+													DWORD width = FPS_WIDTH;
+													do
+													{
+														*pix++ = (check & 1) ? 0xFF : *idx;
+														++idx;
+														check >>= 1;
+													} while (--width);
+												}
+
+												current = current / 10;
+											} while (--dcount);
+
+											GLTexSubImage2D(GL_TEXTURE_2D, 0, FPS_X, FPS_Y, FPS_WIDTH * digCount, FPS_HEIGHT, GL_ALPHA, GL_UNSIGNED_BYTE, pixelBuffer);
+										}
+
+										GLDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+										SwapBuffers(this->hDc);
+										if (isVSync)
+											GLFinish();
+
+										if (this->isTakeSnapshot)
+										{
+											this->isTakeSnapshot = FALSE;
+											this->TakeScreenshot();
+										}
 									}
 
-									GLDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-									SwapBuffers(this->hDc);
-									if (isVSync)
-										GLFinish();
-
-									if (this->isTakeSnapshot)
-									{
-										this->isTakeSnapshot = FALSE;
-										this->TakeScreenshot();
-									}
+									if (config.singleThread)
+										Sleep(0);
 								} while (!this->isFinish);
 								GLFinish();
 							}
@@ -791,7 +853,22 @@ VOID DirectDraw::RenderNew()
 								}
 								else
 								{
-									if (WGLSwapInterval)
+									BOOL isValid = TRUE;
+									if (config.singleThread)
+									{
+										LONGLONG qp;
+										QueryPerformanceFrequency((LARGE_INTEGER*)&qp);
+										DOUBLE timerResolution = (DOUBLE)qp;
+
+										QueryPerformanceCounter((LARGE_INTEGER*)&qp);
+										DOUBLE currTime = (DOUBLE)qp / timerResolution;
+
+										if (currTime >= nextSyncTime)
+											nextSyncTime += fpsSync * (1.0f + (FLOAT)DWORD((currTime - nextSyncTime) / fpsSync));
+										else
+											isValid = FALSE;
+									}
+									else if (WGLSwapInterval)
 									{
 										if (!isVSync)
 										{
@@ -811,28 +888,34 @@ VOID DirectDraw::RenderNew()
 										}
 									}
 
-									this->CheckView();
-
-									if (this->isStateChanged)
+									if (isValid)
 									{
-										this->isStateChanged = FALSE;
-										GLint filter = config.windowedMode && config.filtering ? GL_LINEAR : GL_NEAREST;
-										GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
-										GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+										this->CheckView();
+
+										if (this->isStateChanged)
+										{
+											this->isStateChanged = FALSE;
+											GLint filter = config.windowedMode && config.filtering ? GL_LINEAR : GL_NEAREST;
+											GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+											GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+										}
+
+										GLTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, this->dwMode->width, this->dwMode->height, GL_RGBA, GL_UNSIGNED_BYTE, this->indexBuffer);
+
+										GLDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+										SwapBuffers(this->hDc);
+										if (isVSync)
+											GLFinish();
+
+										if (this->isTakeSnapshot)
+										{
+											this->isTakeSnapshot = FALSE;
+											this->TakeScreenshot();
+										}
 									}
 
-									GLTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, this->dwMode->width, this->dwMode->height, GL_RGBA, GL_UNSIGNED_BYTE, this->indexBuffer);
-
-									GLDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-									SwapBuffers(this->hDc);
-									if (isVSync)
-										GLFinish();
-
-									if (this->isTakeSnapshot)
-									{
-										this->isTakeSnapshot = FALSE;
-										this->TakeScreenshot();
-									}
+									if (config.singleThread)
+										Sleep(0);
 								}
 							} while (!this->isFinish);
 							GLFinish();

@@ -43,10 +43,10 @@ COMPAT_IN vec2 fTexCoord;
 
 void main() {
 	vec2 texel = floor(fTexCoord);
-	vec2 phase = fTexCoord - texel;
-
+	
 	#define TEX(x, y) COMPAT_TEXTURE_1D(pal01, COMPAT_TEXTURE_2D(tex01, (texel + 0.5 + vec2(x, y)) / texSize).a).rgb
 
+	vec2 phase = fTexCoord - texel;
 	vec3 color = mix(
 		mix(TEX(0.0, 0.0), TEX(1.0, 0.0), phase.x),
 		mix(TEX(0.0, 1.0), TEX(1.0, 1.0), phase.x),

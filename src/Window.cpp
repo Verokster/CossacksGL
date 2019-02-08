@@ -572,8 +572,8 @@ namespace Window
 	{
 		CheckMenuItem(config.menu, IDM_WINDOW_FULLSCREEN, MF_BYCOMMAND | (!config.windowedMode ? MF_CHECKED : MF_UNCHECKED));
 
-		EnableMenuItem(config.menu, IDM_WINDOW_VSYNC, MF_BYCOMMAND | (glVersion && WGLSwapInterval ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)));
-		CheckMenuItem(config.menu, IDM_WINDOW_VSYNC, MF_BYCOMMAND | (glVersion && WGLSwapInterval && config.vSync ? MF_CHECKED : MF_UNCHECKED));
+		EnableMenuItem(config.menu, IDM_WINDOW_VSYNC, MF_BYCOMMAND | (glVersion && !config.singleThread && WGLSwapInterval ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)));
+		CheckMenuItem(config.menu, IDM_WINDOW_VSYNC, MF_BYCOMMAND | (glVersion && !config.singleThread && WGLSwapInterval && config.vSync ? MF_CHECKED : MF_UNCHECKED));
 
 		CheckMenuItem(config.menu, IDM_WINDOW_FPSCOUNTER, MF_BYCOMMAND | (config.fpsCounter ? MF_CHECKED : MF_UNCHECKED));
 		CheckMenuItem(config.menu, IDM_WINDOW_MOUSECAPTURE, MF_BYCOMMAND | (config.mouseCapture ? MF_CHECKED : MF_UNCHECKED));

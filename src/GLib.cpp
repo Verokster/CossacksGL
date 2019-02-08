@@ -477,9 +477,18 @@ namespace GL
 
 		GLuint shader = GLCreateShader(type);
 
-		const GLchar* source[] = { "#version ", version, "\n", (GLchar*)pData };
-		const GLint lengths[] = { 9, 3, 1, (GLint)SizeofResource(hDllModule, hResource) };
-		GLShaderSource(shader, 4, source, lengths);
+		DWORD length = SizeofResource(hDllModule, hResource);
+		DWORD size = length + 13;
+		CHAR* source = (CHAR*)MemoryAlloc(size + 1);
+		const GLchar* srcData[] = { source };
+		{
+			MemoryCopy(source, version, 13);
+			MemoryCopy(source + 13, pData, length);
+			*(source + size) = NULL;
+
+			GLShaderSource(shader, 1, srcData, NULL);
+		}
+		MemoryFree(source);
 
 		GLint result;
 		GLCompileShader(shader);

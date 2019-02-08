@@ -90,6 +90,7 @@ struct ConfigItems
 	BOOL aspectRatio;
 	BOOL mouseCapture;
 	BOOL vSync;
+	BOOL singleThread;
 
 	HCURSOR cursor;
 	HMENU menu;

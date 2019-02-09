@@ -28,13 +28,15 @@
 #include "GLib.h"
 #include "Allocation.h"
 
+class DirectDraw;
+
 class DirectDrawSurface : IDirectDrawSurface, public Allocation
 {
 public:
-	LPDIRECTDRAW ddraw;
+	DirectDraw* ddraw;
 	DirectDrawPalette* palEntry;
 
-	DirectDrawSurface(LPDIRECTDRAW);
+	DirectDrawSurface(DirectDraw*);
 	~DirectDrawSurface();
 
 	// Inherited via IDirectDrawSurface

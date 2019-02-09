@@ -23,6 +23,7 @@
 */
 
 #include "stdafx.h"
+#include "DirectDrawPalette.h"
 #include "DirectDraw.h"
 
 #pragma region Not Implemented
@@ -44,13 +45,13 @@ ULONG DirectDrawPalette::Release()
 
 HRESULT DirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries)
 {
-	MemoryCopy(((DirectDraw*)this->ddraw)->palette, lpEntries, 255 * sizeof(DWORD));
-	((DirectDraw*)this->ddraw)->isPalChanged = TRUE;
+	MemoryCopy(this->ddraw->palette, lpEntries, 255 * sizeof(DWORD));
+	this->ddraw->isPalChanged = TRUE;
 
 	return DD_OK;
 }
 
-DirectDrawPalette::DirectDrawPalette(LPDIRECTDRAW lpDD, DirectDrawPalette* prev)
+DirectDrawPalette::DirectDrawPalette(DirectDraw* lpDD, DirectDrawPalette* prev)
 {
 	this->ddraw = lpDD;
 	this->previous = prev;

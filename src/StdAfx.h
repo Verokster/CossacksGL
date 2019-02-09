@@ -56,6 +56,8 @@ extern DEACTIVATEACTCTX DeactivateActCtxC;
 
 typedef VOID*(__cdecl *MALLOC)(size_t);
 typedef VOID(__cdecl *FREE)(VOID*);
+typedef VOID*(__cdecl *ALIGNED_MALLOC)(size_t, size_t);
+typedef VOID(__cdecl *ALIGNED_FREE)(VOID*);
 typedef VOID*(__cdecl *MEMSET)(VOID*, INT, size_t);
 typedef VOID*(__cdecl *MEMCPY)(VOID*, const VOID*, size_t);
 typedef double(__cdecl *CEIL)(double);
@@ -74,6 +76,8 @@ typedef VOID(__cdecl *EXIT)(INT);
 
 extern MALLOC MemoryAlloc;
 extern FREE MemoryFree;
+extern ALIGNED_MALLOC AlignedAlloc;
+extern ALIGNED_FREE AlignedFree;
 extern MEMSET MemorySet;
 extern MEMCPY MemoryCopy;
 extern CEIL MathCeil;

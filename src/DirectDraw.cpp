@@ -191,6 +191,7 @@ DWORD __stdcall RenderThread(LPVOID lpParameter)
 				}
 
 				Window::CheckMenu();
+				GLPixelStorei(GL_UNPACK_ALIGNMENT, 8);
 				if (glVersion >= GL_VER_2_0)
 					ddraw->RenderNew();
 				else
@@ -222,8 +223,9 @@ VOID DirectDraw::RenderOld()
 		maxAllow <<= 1;
 
 	DWORD maxTexSize = maxAllow < glMaxTexSize ? maxAllow : glMaxTexSize;
+	DWORD texPitch = this->pitch / (this->dwMode->bpp >> 3);
 
-	VOID* pixelBuffer = MemoryAlloc(maxTexSize * maxTexSize * sizeof(DWORD));
+	VOID* pixelBuffer = AlignedAlloc(maxTexSize * maxTexSize * sizeof(DWORD), 16);
 	{
 		DWORD framePerWidth = this->dwMode->width / maxTexSize + (this->dwMode->width % maxTexSize ? 1 : 0);
 		DWORD framePerHeight = this->dwMode->height / maxTexSize + (this->dwMode->height % maxTexSize ? 1 : 0);
@@ -389,7 +391,7 @@ VOID DirectDraw::RenderOld()
 										BYTE* pix = (BYTE*)pixelBuffer;
 										for (INT y = frame->rect.y; y < frame->vSize.height; ++y)
 										{
-											BYTE* idx = this->indexBuffer + y * this->dwMode->width + frame->rect.x;
+											BYTE* idx = this->indexBuffer + y * texPitch + frame->rect.x;
 											MemoryCopy(pix, idx, frame->rect.width);
 											pix += frame->rect.width;
 										}
@@ -438,7 +440,7 @@ VOID DirectDraw::RenderOld()
 										DWORD* pix = (DWORD*)pixelBuffer;
 										for (INT y = frame->rect.y; y < frame->vSize.height; ++y)
 										{
-											BYTE* idx = this->indexBuffer + y * this->dwMode->width + frame->rect.x;
+											BYTE* idx = this->indexBuffer + y * texPitch + frame->rect.x;
 											for (INT x = frame->rect.x; x < frame->vSize.width; ++x)
 												*pix++ = this->palette[*idx++];
 										}
@@ -513,7 +515,7 @@ VOID DirectDraw::RenderOld()
 									DWORD* pix = (DWORD*)pixelBuffer;
 									for (INT y = frame->rect.y; y < frame->vSize.height; ++y)
 									{
-										DWORD* idx = (DWORD*)this->indexBuffer + y * this->dwMode->width + frame->rect.x;
+										DWORD* idx = (DWORD*)this->indexBuffer + y * texPitch + frame->rect.x;
 										for (INT x = frame->rect.x; x < frame->vSize.width; ++x)
 											*pix++ = *idx++;
 									}
@@ -550,8 +552,7 @@ VOID DirectDraw::RenderOld()
 							}
 						}
 
-						if (config.singleThread)
-							Sleep(0);
+						Sleep(0);
 					}
 					else
 					{
@@ -575,7 +576,7 @@ VOID DirectDraw::RenderOld()
 		}
 		MemoryFree(frames);
 	}
-	MemoryFree(pixelBuffer);
+	AlignedFree(pixelBuffer);
 }
 
 VOID DirectDraw::RenderNew()
@@ -585,6 +586,8 @@ VOID DirectDraw::RenderNew()
 	while (maxTexSize < maxSize) maxTexSize <<= 1;
 	FLOAT texWidth = this->dwMode->width == maxTexSize ? 1.0f : FLOAT((FLOAT)this->dwMode->width / maxTexSize);
 	FLOAT texHeight = this->dwMode->height == maxTexSize ? 1.0f : FLOAT((FLOAT)this->dwMode->height / maxTexSize);
+
+	DWORD texPitch = this->pitch / (this->dwMode->bpp >> 3);
 
 	FLOAT buffer[4][4] = {
 		{ 0.0f, 0.0f, 0.0f, 0.0f },
@@ -657,7 +660,7 @@ VOID DirectDraw::RenderNew()
 						if (WGLSwapInterval && !config.singleThread)
 							WGLSwapInterval(0);
 					}
-					
+
 					if (this->dwMode->bpp == 8)
 					{
 						GLuint textures[2];
@@ -686,7 +689,7 @@ VOID DirectDraw::RenderNew()
 							GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 							GLTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, maxTexSize, maxTexSize, GL_NONE, GL_ALPHA, GL_UNSIGNED_BYTE, NULL);
 
-							VOID* pixelBuffer = MemoryAlloc(FPS_HEIGHT * FPS_WIDTH * 4);
+							VOID* pixelBuffer = AlignedAlloc(FPS_HEIGHT * FPS_WIDTH * 4, 16);
 							{
 								do
 								{
@@ -758,7 +761,7 @@ VOID DirectDraw::RenderNew()
 											GLBindTexture(GL_TEXTURE_2D, indicesId);
 										}
 
-										GLTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, this->dwMode->width, this->dwMode->height, GL_ALPHA, GL_UNSIGNED_BYTE, this->indexBuffer);
+										GLTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texPitch, this->dwMode->height, GL_ALPHA, GL_UNSIGNED_BYTE, this->indexBuffer);
 
 										if (config.fpsCounter)
 										{
@@ -780,7 +783,7 @@ VOID DirectDraw::RenderNew()
 
 												for (DWORD y = 0; y < FPS_HEIGHT; ++y)
 												{
-													BYTE* idx = this->indexBuffer + (FPS_Y + y) * this->dwMode->width +
+													BYTE* idx = this->indexBuffer + (FPS_Y + y) * texPitch +
 														FPS_X + FPS_WIDTH * (dcount - 1);
 
 													BYTE* pix = (BYTE*)pixelBuffer + y * FPS_WIDTH * digCount +
@@ -814,12 +817,11 @@ VOID DirectDraw::RenderNew()
 										}
 									}
 
-									if (config.singleThread)
-										Sleep(0);
+									Sleep(0);
 								} while (!this->isFinish);
 								GLFinish();
 							}
-							MemoryFree(pixelBuffer);
+							AlignedFree(pixelBuffer);
 						}
 						GLDeleteTextures(2, textures);
 					}
@@ -900,7 +902,7 @@ VOID DirectDraw::RenderNew()
 											GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
 										}
 
-										GLTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, this->dwMode->width, this->dwMode->height, GL_RGBA, GL_UNSIGNED_BYTE, this->indexBuffer);
+										GLTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texPitch, this->dwMode->height, GL_RGBA, GL_UNSIGNED_BYTE, this->indexBuffer);
 
 										GLDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 										SwapBuffers(this->hDc);
@@ -914,8 +916,7 @@ VOID DirectDraw::RenderNew()
 										}
 									}
 
-									if (config.singleThread)
-										Sleep(0);
+									Sleep(0);
 								}
 							} while (!this->isFinish);
 							GLFinish();
@@ -1078,9 +1079,9 @@ DirectDraw::DirectDraw(DirectDraw* lastObj)
 	this->last = lastObj;
 
 	this->dwMode = NULL;
-	this->indexBufferNA = NULL;
+	this->pitch = 0;
+
 	this->indexBuffer = NULL;
-	this->paletteNA = NULL;
 	this->palette = NULL;
 
 	this->hWnd = NULL;
@@ -1319,12 +1320,12 @@ HRESULT DirectDraw::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceD
 			if ((check->width < mode->width || check->width == mode->width &&
 				(check->height < mode->height || check->height == mode->height &&
 				(check->bpp < mode->bpp || check->bpp == mode->bpp &&
-				check->frequency < mode->frequency)))
+					check->frequency < mode->frequency)))
 				&&
 				(check->width > stored->width || check->width == stored->width &&
 				(check->height > stored->height || check->height == stored->height &&
-				(check->bpp > stored->bpp || check->bpp == stored->bpp &&
-				check->frequency > stored->frequency))))
+					(check->bpp > stored->bpp || check->bpp == stored->bpp &&
+						check->frequency > stored->frequency))))
 				stored = check;
 
 			++check;
@@ -1362,17 +1363,18 @@ HRESULT DirectDraw::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP)
 		}
 	}
 
-	if (this->indexBufferNA)
-		MemoryFree(this->indexBufferNA);
+	this->pitch = dwWidth * dwBPP >> 3;
+	if (this->pitch % 16)
+		this->pitch = (this->pitch + 16) & 0xFFFFFFF0;
 
-	this->indexBufferNA = MemoryAlloc(dwWidth * dwHeight * (dwBPP >> 3) * (dwBPP >> 3) + 16); // double (dwBPP >> 3) for EU video fix
-	this->indexBuffer = (BYTE*)(((DWORD)this->indexBufferNA + 16) & 0xFFFFFFF0);
+	if (this->indexBuffer)
+		AlignedFree(this->indexBuffer);
 
-	if (!this->paletteNA)
-	{
-		this->paletteNA = MemoryAlloc(256 * sizeof(DWORD) + 16);
-		this->palette = (DWORD*)(((DWORD)this->paletteNA + 16) & 0xFFFFFFF0);
-	}
+	this->indexBuffer = (BYTE*)AlignedAlloc(dwWidth * pitch * (dwBPP >> 3), 16); // pitch * (dwBPP >> 3) - for EU video fix
+	MemoryZero(this->indexBuffer, dwWidth * pitch);
+
+	if (!this->palette)
+		this->palette = (DWORD*)AlignedAlloc(256 * sizeof(DWORD), 16);
 
 	MemoryZero(this->palette, 255 * sizeof(DWORD));
 	this->palette[255] = WHITE;
@@ -1514,7 +1516,7 @@ HRESULT DirectDraw::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWS
 	{
 		lpDDSurfaceDesc->dwWidth = this->dwMode->width;
 		lpDDSurfaceDesc->dwHeight = this->dwMode->height;
-		lpDDSurfaceDesc->lPitch = this->dwMode->width * (this->dwMode->bpp >> 3);
+		lpDDSurfaceDesc->lPitch = this->pitch;
 	}
 
 	*(DirectDrawSurface**)lplpDDSurface = new DirectDrawSurface(this);
@@ -1533,17 +1535,15 @@ VOID DirectDraw::ReleaseMode()
 		this->ddPallete = NULL;
 	}
 
-	if (this->paletteNA)
+	if (this->palette)
 	{
-		MemoryFree(this->paletteNA);
-		this->paletteNA = NULL;
+		AlignedFree(this->palette);
 		this->palette = NULL;
 	}
 
-	if (this->indexBufferNA)
+	if (this->indexBuffer)
 	{
-		MemoryFree(this->indexBufferNA);
-		this->indexBufferNA = NULL;
+		AlignedFree(this->indexBuffer);
 		this->indexBuffer = NULL;
 	}
 }

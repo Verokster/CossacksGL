@@ -62,6 +62,7 @@ GLCLEAR GLClear;
 GLCLEARCOLOR GLClearColor;
 GLCOLORTABLE GLColorTable;
 GLREADPIXELS GLReadPixels;
+GLPIXELSTOREI GLPixelStorei;
 
 #ifdef _DEBUG
 GLGETERROR GLGetError;
@@ -227,7 +228,8 @@ namespace GL
 		LoadFunction(buffer, PREFIX_GL, "ClearColor", (PROC*)&GLClearColor);
 		LoadFunction(buffer, PREFIX_GL, "ColorTable", (PROC*)&GLColorTable, "EXT");
 		LoadFunction(buffer, PREFIX_GL, "ReadPixels", (PROC*)&GLReadPixels);
-
+		LoadFunction(buffer, PREFIX_GL, "PixelStorei", (PROC*)&GLPixelStorei);
+		
 #ifdef _DEBUG
 		LoadFunction(buffer, PREFIX_GL, "GetError", (PROC*)&GLGetError);
 #endif

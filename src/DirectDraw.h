@@ -30,10 +30,6 @@
 
 class DirectDraw : IDirectDraw, public Allocation
 {
-private:
-	VOID* indexBufferNA;
-	VOID* paletteNA;
-
 public:
 	DirectDraw* last;
 
@@ -48,8 +44,8 @@ public:
 
 	HANDLE hDrawThread;
 
+	DWORD pitch;
 	BYTE* indexBuffer;
-
 	DWORD* palette;
 	DirectDrawPalette* ddPallete;
 	BOOL isPalChanged;

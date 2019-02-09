@@ -26,13 +26,15 @@
 #include "ddraw.h"
 #include "Allocation.h"
 
+class DirectDraw;
+
 class DirectDrawPalette : IDirectDrawPalette, public Allocation
 {
-private:
-	LPDIRECTDRAW ddraw;
-	DirectDrawPalette* previous;
 public:
-	DirectDrawPalette(LPDIRECTDRAW, DirectDrawPalette*);
+	DirectDraw* ddraw;
+	DirectDrawPalette* previous;
+
+	DirectDrawPalette(DirectDraw*, DirectDrawPalette*);
 
 	// Inherited via IDirectDrawPalette
 	HRESULT __stdcall QueryInterface(REFIID, LPVOID*);

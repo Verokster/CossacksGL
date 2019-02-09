@@ -40,6 +40,8 @@ DEACTIVATEACTCTX DeactivateActCtxC;
 
 MALLOC MemoryAlloc;
 FREE MemoryFree;
+ALIGNED_MALLOC AlignedAlloc;
+ALIGNED_FREE AlignedFree;
 MEMSET MemorySet;
 MEMCPY MemoryCopy;
 CEIL MathCeil;
@@ -110,6 +112,10 @@ VOID LoadMsvCRT()
 
 		MemoryAlloc = (MALLOC)GetProcAddress(hLib, "malloc");
 		MemoryFree = (FREE)GetProcAddress(hLib, "free");
+
+		AlignedAlloc = (ALIGNED_MALLOC)GetProcAddress(hLib, "_aligned_malloc");
+		AlignedFree = (ALIGNED_FREE)GetProcAddress(hLib, "_aligned_free");
+
 		MemorySet = (MEMSET)GetProcAddress(hLib, "memset");
 		MemoryCopy = (MEMCPY)GetProcAddress(hLib, "memcpy");
 

@@ -98,7 +98,7 @@ namespace Hooks
 		}
 		return FALSE;
 	}
-	
+
 	BOOL __fastcall PatchDWord(DWORD addr, DWORD value)
 	{
 		return PatchBlock(addr, &value, sizeof(value));
@@ -454,7 +454,7 @@ namespace Hooks
 	BOOL __stdcall PeekMessageHook(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg)
 	{
 		BOOL res = PeekMessageA(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg);
-		if (res && config.singleThread)
+		if (!res)
 			Sleep(0);
 		return res;
 	}

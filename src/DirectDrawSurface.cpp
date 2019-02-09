@@ -83,7 +83,7 @@ HRESULT DirectDrawSurface::GetPixelFormat(LPDDPIXELFORMAT lpDDPixelFormat)
 
 ULONG DirectDrawSurface::Release()
 {
-	((DirectDraw*)this->ddraw)->ReleaseMode();
+	this->ddraw->ReleaseMode();
 
 	delete this;
 	return 0;
@@ -91,18 +91,18 @@ ULONG DirectDrawSurface::Release()
 
 HRESULT DirectDrawSurface::GetDC(HDC* hDc)
 {
-	*hDc = ((DirectDraw*)this->ddraw)->hDc;
+	*hDc = this->ddraw->hDc;
 	return DD_OK;
 }
 
 HRESULT DirectDrawSurface::Lock(LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent)
 {
-	DisplayMode* dwMode = ((DirectDraw*)this->ddraw)->dwMode;
-
+	DisplayMode* dwMode = this->ddraw->dwMode;
 	lpDDSurfaceDesc->dwWidth = dwMode->width;
 	lpDDSurfaceDesc->dwHeight = dwMode->height;
-	lpDDSurfaceDesc->lPitch = dwMode->width * (dwMode->bpp >> 3);
-	lpDDSurfaceDesc->lpSurface = ((DirectDraw*)this->ddraw)->indexBuffer;
+
+	lpDDSurfaceDesc->lPitch = this->ddraw->pitch;
+	lpDDSurfaceDesc->lpSurface = this->ddraw->indexBuffer;
 
 	return DD_OK;
 }
@@ -113,7 +113,7 @@ HRESULT DirectDrawSurface::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 	return DD_OK;
 }
 
-DirectDrawSurface::DirectDrawSurface(LPDIRECTDRAW lpDD)
+DirectDrawSurface::DirectDrawSurface(DirectDraw* lpDD)
 {
 	this->ddraw = lpDD;
 	this->palEntry = NULL;

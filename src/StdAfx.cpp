@@ -31,12 +31,12 @@ DirectDraw* ddrawList;
 MCISENDCOMMANDA MciSendCommand;
 MCIGETERRORSTRINGA MciGetErrorString;
 
-DWMISCOMPOSITIONENABLED IsDwmCompositionEnabled;
-
 CREATEACTCTXA CreateActCtxC;
 RELEASEACTCTX ReleaseActCtxC;
 ACTIVATEACTCTX ActivateActCtxC;
 DEACTIVATEACTCTX DeactivateActCtxC;
+
+SETPROCESSDPIAWARENESS SetProcessDpiAwarenessC;
 
 MALLOC MemoryAlloc;
 FREE MemoryFree;
@@ -49,6 +49,7 @@ FLOOR MathFloor;
 ROUND MathRound;
 SPRINTF StrPrint;
 STRCMP StrCompare;
+STRICMP StrCompareInsensitive;
 STRCPY StrCopy;
 STRCAT StrCat;
 STRSTR StrStr;
@@ -126,6 +127,7 @@ VOID LoadMsvCRT()
 			MathRound = round;
 
 		StrCompare = (STRCMP)GetProcAddress(hLib, "strcmp");
+		StrCompareInsensitive = (STRICMP)GetProcAddress(hLib, "_stricmp");
 		StrCopy = (STRCPY)GetProcAddress(hLib, "strcpy");
 		StrCat = (STRCAT)GetProcAddress(hLib, "strcat");
 		StrStr = (STRSTR)GetProcAddress(hLib, "strstr");
@@ -190,9 +192,11 @@ VOID LoadWinMM()
 	}
 }
 
-VOID LoadDwmAPI()
+VOID LoadShcore()
 {
-	HMODULE hLib = LoadLibrary("DWMAPI.dll");
+	HMODULE hLib = LoadLibrary("SHCORE.dll");
 	if (hLib)
-		IsDwmCompositionEnabled = (DWMISCOMPOSITIONENABLED)GetProcAddress(hLib, "DwmIsCompositionEnabled");
+	{
+		SetProcessDpiAwarenessC = (SETPROCESSDPIAWARENESS)GetProcAddress(hLib, "SetProcessDpiAwareness");
+	}
 }

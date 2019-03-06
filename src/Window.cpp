@@ -289,8 +289,6 @@ namespace Window
 					}
 					ddraw->RenderStart();
 				}
-				else
-					config.windowedMode = !config.windowedMode;
 
 				return NULL;
 			}

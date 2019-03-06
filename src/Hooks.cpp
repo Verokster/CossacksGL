@@ -443,6 +443,28 @@ namespace Hooks
 
 	BOOL __stdcall ClientToScreenHook(HWND hWnd, LPPOINT lpPoint) { return TRUE; }
 
+	BOOL __stdcall PeekMessageHook(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg)
+	{
+		BOOL res = PeekMessageA(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg);
+		if (!res)
+			Sleep(0);
+		return res;
+	}
+
+	HMODULE __stdcall LoadLibraryHook(LPCSTR lpLibFileName)
+	{
+		if (!StrCompareInsensitive(lpLibFileName, "DDRAW.dll") || !StrCompareInsensitive(lpLibFileName, "MDRAW.dll"))
+			return hDllModule;
+		return LoadLibrary(lpLibFileName);
+	}
+
+	BOOL __stdcall FreeLibraryHook(HMODULE hLibModule)
+	{
+		if (hLibModule == hDllModule)
+			return TRUE;
+		return FreeLibrary(hLibModule);
+	}
+
 	FARPROC __stdcall GetProcAddressHook(HMODULE hModule, LPCSTR lpProcName)
 	{
 		if (!StrCompare(lpProcName, "DirectDrawCreate"))
@@ -451,13 +473,6 @@ namespace Hooks
 			return GetProcAddress(hModule, lpProcName);
 	}
 
-	BOOL __stdcall PeekMessageHook(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg)
-	{
-		BOOL res = PeekMessageA(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg);
-		if (!res)
-			Sleep(0);
-		return res;
-	}
 
 	VOID Load()
 	{
@@ -470,18 +485,25 @@ namespace Hooks
 		{
 			PatchFunction(&file, "DirectDrawCreate", Main::DirectDrawCreate);
 
+			PatchFunction(&file, "LoadLibraryA", LoadLibraryHook);
+			PatchFunction(&file, "FreeLibrary", FreeLibraryHook);
+			PatchFunction(&file, "GetProcAddress", GetProcAddressHook);
+
 			PatchFunction(&file, "RegisterClassA", RegisterClassHook);
 			PatchFunction(&file, "CreateWindowExA", CreateWindowExHook);
-			MciSendCommandOld = (MCISENDCOMMANDA)PatchFunction(&file, "mciSendCommandA", mciSendCommandHook);
-			MciGetErrorStringOld = (MCIGETERRORSTRINGA)PatchFunction(&file, "mciGetErrorStringA", mciGetErrorStringHook);
+
 			PatchFunction(&file, "ClipCursor", ClipCursorHook);
 			PatchFunction(&file, "ShowCursor", ShowCursorHook);
 			PatchFunction(&file, "SetCursor", SetCursorHook);
 			PatchFunction(&file, "SetCursorPos", SetCursorPosHook);
+
 			PatchFunction(&file, "MessageBoxA", MessageBoxHook);
 			PatchFunction(&file, "ClientToScreen", ClientToScreenHook);
-			PatchFunction(&file, "GetProcAddress", GetProcAddressHook);
+
 			PatchFunction(&file, "PeekMessageA", PeekMessageHook);
+
+			MciSendCommandOld = (MCISENDCOMMANDA)PatchFunction(&file, "mciSendCommandA", mciSendCommandHook);
+			MciGetErrorStringOld = (MCIGETERRORSTRINGA)PatchFunction(&file, "mciGetErrorStringA", mciGetErrorStringHook);
 		}
 
 		if (file.address)

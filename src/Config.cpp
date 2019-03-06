@@ -30,8 +30,10 @@ ConfigItems config;
 
 namespace Config
 {
-	VOID __fastcall Load(HMODULE hModule)
+	VOID __fastcall Load()
 	{
+		HMODULE hModule = GetModuleHandle(NULL);
+
 		GetModuleFileName(hModule, config.file, MAX_PATH - 1);
 		CHAR* p = StrLastChar(config.file, '.');
 		*p = NULL;

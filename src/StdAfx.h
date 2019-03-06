@@ -29,6 +29,7 @@
 #include "Mmsystem.h"
 #include "stdlib.h"
 #include "stdio.h"
+#include "shellscalingapi.h"
 #include "DirectDraw.h"
 
 #define WC_DRAW "ca6eb59a-0eb1-4349-b913-39b03a7008ab"
@@ -41,9 +42,6 @@ typedef BOOL(__stdcall *MCIGETERRORSTRINGA)(MCIERROR mcierr, LPSTR pszText, UINT
 extern MCISENDCOMMANDA MciSendCommand;
 extern MCIGETERRORSTRINGA MciGetErrorString;
 
-typedef HRESULT(__stdcall *DWMISCOMPOSITIONENABLED)(BOOL* pfEnabled);
-extern DWMISCOMPOSITIONENABLED IsDwmCompositionEnabled;
-
 typedef HANDLE(__stdcall *CREATEACTCTXA)(ACTCTX* pActCtx);
 typedef VOID(__stdcall *RELEASEACTCTX)(HANDLE hActCtx);
 typedef BOOL(__stdcall *ACTIVATEACTCTX)(HANDLE hActCtx, ULONG_PTR* lpCookie);
@@ -53,6 +51,10 @@ extern CREATEACTCTXA CreateActCtxC;
 extern RELEASEACTCTX ReleaseActCtxC;
 extern ACTIVATEACTCTX ActivateActCtxC;
 extern DEACTIVATEACTCTX DeactivateActCtxC;
+
+typedef HRESULT(__stdcall *SETPROCESSDPIAWARENESS)(PROCESS_DPI_AWARENESS);
+
+extern SETPROCESSDPIAWARENESS SetProcessDpiAwarenessC;
 
 typedef VOID*(__cdecl *MALLOC)(size_t);
 typedef VOID(__cdecl *FREE)(VOID*);
@@ -65,6 +67,7 @@ typedef double(__cdecl *FLOOR)(double);
 typedef double(__cdecl *ROUND)(double);
 typedef INT(__cdecl *SPRINTF)(CHAR*, const CHAR*, ...);
 typedef INT(__cdecl *STRCMP)(const CHAR*, const CHAR*);
+typedef INT(__cdecl *STRICMP)(const CHAR*, const CHAR*);
 typedef CHAR*(__cdecl *STRCPY)(CHAR*, const CHAR*);
 typedef CHAR*(__cdecl *STRCAT)(CHAR*, const CHAR*);
 typedef CHAR*(__cdecl *STRSTR)(const CHAR*, const CHAR*);
@@ -85,6 +88,7 @@ extern FLOOR MathFloor;
 extern ROUND MathRound;
 extern SPRINTF StrPrint;
 extern STRCMP StrCompare;
+extern STRICMP StrCompareInsensitive;
 extern STRCPY StrCopy;
 extern STRCAT StrCat;
 extern STRSTR StrStr;
@@ -105,4 +109,4 @@ VOID LoadMsvCRT();
 VOID LoadDPlayX();
 VOID LoadKernel32();
 VOID LoadWinMM();
-VOID LoadDwmAPI();
+VOID LoadShcore();

@@ -300,6 +300,7 @@ VOID FpsCounter::Reset()
 	this->currentIndex = 0;
 	this->summary = 0;
 	this->lastTick = 0;
+	this->value = 0;
 	MemoryZero(this->tickQueue, this->count * sizeof(FrameItem));
 }
 

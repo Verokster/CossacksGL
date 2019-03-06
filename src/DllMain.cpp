@@ -40,9 +40,12 @@ BOOL __stdcall DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		LoadDPlayX();
 		LoadWinMM();
 		LoadKernel32();
-		LoadDwmAPI();
+		LoadShcore();
 
-		Config::Load(GetModuleHandle(NULL));
+		if (SetProcessDpiAwarenessC)
+			SetProcessDpiAwarenessC(PROCESS_PER_MONITOR_DPI_AWARE);
+
+		Config::Load();
 		Hooks::Load();
 
 		Window::SetCaptureKeys(TRUE);

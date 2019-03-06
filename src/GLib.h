@@ -260,6 +260,7 @@ namespace GL
 	BOOL __fastcall Load();
 	VOID __fastcall Free();
 	VOID __fastcall CreateContextAttribs(HDC hDc, HGLRC* hRc);
+	VOID __fastcall ResetPixelFormatDescription(PIXELFORMATDESCRIPTOR* pfd);
 	VOID __fastcall PreparePixelFormatDescription(PIXELFORMATDESCRIPTOR* pfd);
 	INT __fastcall PreparePixelFormat(PIXELFORMATDESCRIPTOR* pfd);
 	GLuint __fastcall CompileShaderSource(DWORD name, const CHAR* version, GLenum type);

@@ -160,9 +160,7 @@ DWORD __stdcall RenderThread(LPVOID lpParameter)
 		if (!SetPixelFormat(ddraw->hDc, glPixelFormat, &pfd))
 			Main::ShowError("SetPixelFormat failed", __FILE__, __LINE__);
 
-		MemoryZero(&pfd, sizeof(PIXELFORMATDESCRIPTOR));
-		pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
-		pfd.nVersion = 1;
+		GL::ResetPixelFormatDescription(&pfd);
 		if (DescribePixelFormat(ddraw->hDc, glPixelFormat, sizeof(PIXELFORMATDESCRIPTOR), &pfd) == NULL)
 			Main::ShowError("DescribePixelFormat failed", __FILE__, __LINE__);
 
@@ -1013,8 +1011,8 @@ VOID DirectDraw::RenderStart()
 			WC_DRAW,
 			NULL,
 			mciVideo.deviceId ? WS_POPUP : (WS_VISIBLE | WS_POPUP),
-			rect.left, rect.top,
-			rect.right - rect.left, rect.bottom - rect.top,
+			0, 0,
+			rect.right, rect.bottom,
 			this->hWnd,
 			NULL,
 			hDllModule,
@@ -1027,8 +1025,8 @@ VOID DirectDraw::RenderStart()
 			WC_DRAW,
 			NULL,
 			mciVideo.deviceId ? (WS_CHILD | WS_MAXIMIZE) : (WS_VISIBLE | WS_CHILD | WS_MAXIMIZE),
-			rect.left, rect.top,
-			rect.right - rect.left, rect.bottom - rect.top,
+			0, 0,
+			rect.right, rect.bottom,
 			this->hWnd,
 			NULL,
 			hDllModule,
@@ -1042,8 +1040,8 @@ VOID DirectDraw::RenderStart()
 	SetClassLongPtr(this->hWnd, GCLP_HBRBACKGROUND, NULL);
 	RedrawWindow(this->hWnd, NULL, NULL, RDW_INVALIDATE);
 
-	this->viewport.width = rect.right - rect.left;
-	this->viewport.height = rect.bottom - rect.top;
+	this->viewport.width = rect.right;
+	this->viewport.height = rect.bottom;
 	this->viewport.refresh = TRUE;
 
 	DWORD threadId;
@@ -1083,6 +1081,7 @@ DirectDraw::DirectDraw(DirectDraw* lastObj)
 
 	this->indexBuffer = NULL;
 	this->palette = NULL;
+	this->ddPallete = NULL;
 
 	this->hWnd = NULL;
 	this->hDraw = NULL;
@@ -1289,15 +1288,18 @@ HRESULT DirectDraw::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceD
 					break;
 			}
 
-			devMode.dmBitsPerPel = 8;
-			idx = AddDisplayMode(&devMode);
-			if (idx)
+			if (devMode.dmPelsWidth >= 800 && devMode.dmPelsHeight >= 600)
 			{
-				if (count < idx)
-					count = idx;
+				devMode.dmBitsPerPel = 8;
+				idx = AddDisplayMode(&devMode);
+				if (idx)
+				{
+					if (count < idx)
+						count = idx;
+				}
+				else
+					break;
 			}
-			else
-				break;
 		}
 
 		MemoryZero(&devMode, sizeof(DEVMODE));
@@ -1333,14 +1335,17 @@ HRESULT DirectDraw::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceD
 
 		mode = stored;
 
-		DDSURFACEDESC ddSurfaceDesc;
-		ddSurfaceDesc.dwWidth = mode->width;
-		ddSurfaceDesc.dwHeight = mode->height;
-		ddSurfaceDesc.ddpfPixelFormat.dwRGBBitCount = mode->bpp;
-		ddSurfaceDesc.dwRefreshRate = mode->frequency;
+		if (mode->bpp == 8)
+		{
+			DDSURFACEDESC ddSurfaceDesc;
+			ddSurfaceDesc.dwWidth = mode->width;
+			ddSurfaceDesc.dwHeight = mode->height;
+			ddSurfaceDesc.ddpfPixelFormat.dwRGBBitCount = mode->bpp;
+			ddSurfaceDesc.dwRefreshRate = mode->frequency;
 
-		if (!lpEnumModesCallback(&ddSurfaceDesc, NULL))
-			break;
+			if (!lpEnumModesCallback(&ddSurfaceDesc, NULL))
+				break;
+		}
 	}
 
 	return DD_OK;

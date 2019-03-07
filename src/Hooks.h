@@ -30,7 +30,8 @@ extern DWORD mciIndex;
 
 namespace Hooks
 {
+	DWORD __fastcall PatchFunction(MappedFile* file, const CHAR* function, VOID* addr);
 	VOID __fastcall CalcVideoSize(DWORD width, DWORD height, RECT* rc);
-
+	
 	VOID Load();
 }

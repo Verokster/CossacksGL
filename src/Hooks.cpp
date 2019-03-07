@@ -36,12 +36,33 @@ DWORD mciIndex;
 
 namespace Hooks
 {
-	PIMAGE_DOS_HEADER headDOS;
-	INT baseOffset;
+	BOOL __fastcall PatchRedirect(DWORD addr, VOID* hook, BYTE instruction)
+	{
+		DWORD address = addr;
+
+		DWORD old_prot;
+		if (VirtualProtect((VOID*)address, 5, PAGE_EXECUTE_READWRITE, &old_prot))
+		{
+			BYTE* jump = (BYTE*)address;
+			*jump = instruction;
+			++jump;
+			*(DWORD*)jump = (DWORD)hook - (DWORD)address - 5;
+
+			VirtualProtect((VOID*)address, 5, old_prot, &old_prot);
+
+			return TRUE;
+		}
+		return FALSE;
+	}
+
+	BOOL __fastcall PatchHook(DWORD addr, VOID* hook)
+	{
+		return PatchRedirect(addr, hook, 0xE9);
+	}
 
 	BOOL __fastcall PatchBlock(DWORD addr, VOID* block, DWORD size)
 	{
-		DWORD address = addr + baseOffset;
+		DWORD address = addr;
 
 		DWORD old_prot;
 		if (VirtualProtect((VOID*)address, size, PAGE_EXECUTE_READWRITE, &old_prot))
@@ -71,7 +92,7 @@ namespace Hooks
 
 	BOOL __fastcall ReadBlock(DWORD addr, VOID* block, DWORD size)
 	{
-		DWORD address = addr + baseOffset;
+		DWORD address = addr;
 
 		DWORD old_prot;
 		if (VirtualProtect((VOID*)address, size, PAGE_READONLY, &old_prot))
@@ -118,8 +139,8 @@ namespace Hooks
 	{
 		DWORD res = NULL;
 
-		DWORD base = (DWORD)headDOS;
-		PIMAGE_NT_HEADERS headNT = (PIMAGE_NT_HEADERS)((BYTE*)base + headDOS->e_lfanew);
+		DWORD base = (DWORD)file->hModule;
+		PIMAGE_NT_HEADERS headNT = (PIMAGE_NT_HEADERS)((BYTE*)base + ((PIMAGE_DOS_HEADER)file->hModule)->e_lfanew);
 
 		PIMAGE_DATA_DIRECTORY dataDir = &headNT->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
 		if (dataDir->Size)
@@ -138,7 +159,7 @@ namespace Hooks
 					if (!file->hFile)
 					{
 						CHAR filePath[MAX_PATH];
-						GetModuleFileName((HMODULE)headDOS, filePath, MAX_PATH);
+						GetModuleFileName(file->hModule, filePath, MAX_PATH);
 						file->hFile = CreateFile(filePath, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 						if (!file->hFile)
 							return res;
@@ -183,10 +204,10 @@ namespace Hooks
 					PIMAGE_IMPORT_BY_NAME name = PIMAGE_IMPORT_BY_NAME(base + nameThunk->u1.AddressOfData);
 
 					WORD hint;
-					if (ReadWord((INT)name - baseOffset, &hint) && !StrCompare((CHAR*)name->Name, function))
+					if (ReadWord((INT)name, &hint) && !StrCompare((CHAR*)name->Name, function))
 					{
-						if (ReadDWord((INT)&addressThunk->u1.AddressOfData - baseOffset, &res))
-							PatchDWord((INT)&addressThunk->u1.AddressOfData - baseOffset, (DWORD)addr);
+						if (ReadDWord((INT)&addressThunk->u1.AddressOfData, &res))
+							PatchDWord((INT)&addressThunk->u1.AddressOfData, (DWORD)addr);
 
 						return res;
 					}
@@ -469,6 +490,8 @@ namespace Hooks
 	{
 		if (!StrCompare(lpProcName, "DirectDrawCreate"))
 			return (FARPROC)Main::DirectDrawCreate;
+		else if (!StrCompare(lpProcName, "DirectDrawCreateEx"))
+			return (FARPROC)Main::DirectDrawCreateEx;
 		else
 			return GetProcAddress(hModule, lpProcName);
 	}
@@ -476,12 +499,7 @@ namespace Hooks
 
 	VOID Load()
 	{
-		headDOS = (PIMAGE_DOS_HEADER)GetModuleHandle(NULL);
-		PIMAGE_NT_HEADERS headNT = (PIMAGE_NT_HEADERS)((BYTE*)headDOS + headDOS->e_lfanew);
-		baseOffset = (INT)headDOS - (INT)headNT->OptionalHeader.ImageBase;
-
-		MappedFile file;
-		MemoryZero(&file, sizeof(MappedFile));
+		MappedFile file = { GetModuleHandle(NULL), NULL, NULL, NULL };
 		{
 			PatchFunction(&file, "DirectDrawCreate", Main::DirectDrawCreate);
 
@@ -514,5 +532,11 @@ namespace Hooks
 
 		if (file.hFile)
 			CloseHandle(file.hFile);
+
+		// ============================
+
+		DWORD val;
+		if (ReadDWord(0x02D8D02E, &val) && val == 0x006355B8) // HEW mod SKIDROW
+			PatchHook(0x02D8D025, (VOID*)val);
 	}
 }

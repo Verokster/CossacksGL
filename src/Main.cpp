@@ -37,6 +37,11 @@ namespace Main
 		return DD_OK;
 	}
 
+	HRESULT __stdcall DirectDrawCreateEx(GUID* lpGUID, LPVOID* lplpDD, REFIID iid, IUnknown* pUnkOuter)
+	{
+		return Main::DirectDrawCreate(lpGUID, (LPDIRECTDRAW*)lplpDD, pUnkOuter);
+	}
+
 	DirectDraw* FindDirectDrawByWindow(HWND hWnd)
 	{
 		DirectDraw* ddraw = ddrawList;

@@ -23,6 +23,7 @@
 */
 
 #include "StdAfx.h"
+#include "Hooks.h"
 
 HMODULE hDllModule;
 HANDLE hActCtx;
@@ -70,7 +71,8 @@ DWORD
 	pDllRegisterServer,
 	pDirectPlayEnumerate,
 	pDllUnregisterServer,
-	pGdwDPlaySPRefCount;
+	pGdwDPlaySPRefCount,
+	exGdwDPlaySPRefCount;
 
 VOID _declspec(naked) __stdcall exDirectPlayCreate() { _asm { JMP pDirectPlayCreate } }
 VOID _declspec(naked) __stdcall exDirectPlayEnumerateA() { _asm { JMP pDirectPlayEnumerateA } }
@@ -82,7 +84,6 @@ VOID _declspec(naked) __stdcall exDllGetClassObject() { _asm { JMP pDllGetClassO
 VOID _declspec(naked) __stdcall exDllRegisterServer() { _asm { JMP pDllRegisterServer } }
 VOID _declspec(naked) __stdcall exDirectPlayEnumerate() { _asm { JMP pDirectPlayEnumerate } }
 VOID _declspec(naked) __stdcall exDllUnregisterServer() { _asm { JMP pDllUnregisterServer } }
-VOID _declspec(naked) __stdcall exGdwDPlaySPRefCount() { _asm { JMP pGdwDPlaySPRefCount } }
 
 double __cdecl round(double number)
 {
@@ -163,6 +164,24 @@ VOID LoadDPlayX()
 			pGdwDPlaySPRefCount = (DWORD)GetProcAddress(hLib, "gdwDPlaySPRefCount");
 		}
 	}
+
+	HMODULE hLib = LoadLibrary("DPWSOCKX.dll");
+	if (hLib)
+	{
+		MappedFile file = { hLib, NULL, NULL, NULL };
+		{
+			Hooks::PatchFunction(&file, "gdwDPlaySPRefCount", (VOID*)pGdwDPlaySPRefCount);
+		}
+
+		if (file.address)
+			UnmapViewOfFile(file.address);
+
+		if (file.hMap)
+			CloseHandle(file.hMap);
+
+		if (file.hFile)
+			CloseHandle(file.hFile);
+	}
 }
 
 VOID LoadKernel32()
@@ -196,7 +215,5 @@ VOID LoadShcore()
 {
 	HMODULE hLib = LoadLibrary("SHCORE.dll");
 	if (hLib)
-	{
 		SetProcessDpiAwarenessC = (SETPROCESSDPIAWARENESS)GetProcAddress(hLib, "SetProcessDpiAwareness");
-	}
 }

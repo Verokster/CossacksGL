@@ -109,6 +109,7 @@ struct MciVideo {
 
 struct MappedFile
 {
+	HMODULE hModule;
 	HANDLE hFile;
 	HANDLE hMap;
 	VOID* address;

@@ -40,6 +40,7 @@ namespace Window
 	HHOOK OldMouseHook, OldKeysHook;
 	WNDPROC OldWindowProc, OldPanelProc;
 
+#pragma optimize("t", on)
 	LRESULT __stdcall KeysHook(INT nCode, WPARAM wParam, LPARAM lParam)
 	{
 		if (nCode == HC_ACTION && (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) &&
@@ -388,19 +389,15 @@ namespace Window
 		case WM_KEYDOWN:
 		case WM_SYSKEYDOWN:
 		{
-			if (wParam == VK_F11 || wParam == VK_RETURN && (HIWORD(lParam) & KF_ALTDOWN))
+			if (HIWORD(lParam) & KF_ALTDOWN)
 			{
-				WindowProc(hWnd, WM_COMMAND, IDM_WINDOW_FULLSCREEN, NULL);
-				return NULL;
-			}
-			else if (wParam == 'F' && (HIWORD(lParam) & KF_ALTDOWN))
-			{
-				WindowProc(hWnd, WM_COMMAND, IDM_WINDOW_FPSCOUNTER, NULL);
-				return NULL;
-			}
-			else if (wParam == 'M' && (HIWORD(lParam) & KF_ALTDOWN))
-			{
-				WindowProc(hWnd, WM_COMMAND, IDM_WINDOW_MOUSECAPTURE, NULL);
+				if (wParam == VK_RETURN)
+					WindowProc(hWnd, WM_COMMAND, IDM_WINDOW_FULLSCREEN, NULL);
+				else if (wParam == 'F')
+					WindowProc(hWnd, WM_COMMAND, IDM_WINDOW_FPSCOUNTER, NULL);
+				else if (wParam == 'M')
+					WindowProc(hWnd, WM_COMMAND, IDM_WINDOW_MOUSECAPTURE, NULL);
+
 				return NULL;
 			}
 			else if (wParam == VK_F1)
@@ -578,6 +575,7 @@ namespace Window
 		CheckMenuItem(config.menu, IDM_IMAGE_FILTERING, MF_BYCOMMAND | (config.filtering ? MF_CHECKED : MF_UNCHECKED));
 		CheckMenuItem(config.menu, IDM_IMAGE_ASPECTRATIO, MF_BYCOMMAND | (config.aspectRatio ? MF_CHECKED : MF_UNCHECKED));
 	}
+#pragma optimize("", on)
 
 	VOID __fastcall SetCaptureKeys(BOOL state)
 	{

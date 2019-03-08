@@ -102,43 +102,6 @@ DWORD __fastcall AddDisplayMode(DEVMODE* devMode)
 	return 0;
 }
 
-VOID __fastcall UseShaderProgram(ShaderProgram* program, DWORD texSize)
-{
-	if (!program->id)
-	{
-		program->id = GLCreateProgram();
-
-		GLuint vShader = GL::CompileShaderSource(program->vertexName, program->version, GL_VERTEX_SHADER);
-		GLuint fShader = GL::CompileShaderSource(program->fragmentName, program->version, GL_FRAGMENT_SHADER);
-		{
-
-			GLAttachShader(program->id, vShader);
-			GLAttachShader(program->id, fShader);
-			{
-				GLLinkProgram(program->id);
-			}
-			GLDetachShader(program->id, fShader);
-			GLDetachShader(program->id, vShader);
-		}
-		GLDeleteShader(fShader);
-		GLDeleteShader(vShader);
-
-		GLUseProgram(program->id);
-		GLUniformMatrix4fv(GLGetUniformLocation(program->id, "mvp"), 1, GL_FALSE, program->mvp);
-		GLUniform1i(GLGetUniformLocation(program->id, "tex01"), GL_TEXTURE0 - GL_TEXTURE0);
-
-		GLint loc = GLGetUniformLocation(program->id, "pal01");
-		if (loc >= 0)
-			GLUniform1i(loc, GL_TEXTURE1 - GL_TEXTURE0);
-
-		loc = GLGetUniformLocation(program->id, "texSize");
-		if (loc >= 0)
-			GLUniform2f(loc, (FLOAT)texSize, (FLOAT)texSize);
-	}
-	else
-		GLUseProgram(program->id);
-}
-
 DWORD __stdcall RenderThread(LPVOID lpParameter)
 {
 	DirectDraw* ddraw = (DirectDraw*)lpParameter;
@@ -206,6 +169,45 @@ DWORD __stdcall RenderThread(LPVOID lpParameter)
 	}
 
 	return NULL;
+}
+
+#pragma optimize("t", on)
+
+VOID __fastcall UseShaderProgram(ShaderProgram* program, DWORD texSize)
+{
+	if (!program->id)
+	{
+		program->id = GLCreateProgram();
+
+		GLuint vShader = GL::CompileShaderSource(program->vertexName, program->version, GL_VERTEX_SHADER);
+		GLuint fShader = GL::CompileShaderSource(program->fragmentName, program->version, GL_FRAGMENT_SHADER);
+		{
+
+			GLAttachShader(program->id, vShader);
+			GLAttachShader(program->id, fShader);
+			{
+				GLLinkProgram(program->id);
+			}
+			GLDetachShader(program->id, fShader);
+			GLDetachShader(program->id, vShader);
+		}
+		GLDeleteShader(fShader);
+		GLDeleteShader(vShader);
+
+		GLUseProgram(program->id);
+		GLUniformMatrix4fv(GLGetUniformLocation(program->id, "mvp"), 1, GL_FALSE, program->mvp);
+		GLUniform1i(GLGetUniformLocation(program->id, "tex01"), GL_TEXTURE0 - GL_TEXTURE0);
+
+		GLint loc = GLGetUniformLocation(program->id, "pal01");
+		if (loc >= 0)
+			GLUniform1i(loc, GL_TEXTURE1 - GL_TEXTURE0);
+
+		loc = GLGetUniformLocation(program->id, "texSize");
+		if (loc >= 0)
+			GLUniform2f(loc, (FLOAT)texSize, (FLOAT)texSize);
+	}
+	else
+		GLUseProgram(program->id);
 }
 
 VOID DirectDraw::RenderOld()
@@ -945,6 +947,141 @@ VOID DirectDraw::RenderNew()
 	} while (--count);
 }
 
+VOID DirectDraw::CalcView()
+{
+	this->viewport.rectangle.x = this->viewport.rectangle.y = 0;
+	this->viewport.point.x = this->viewport.point.y = 0.0f;
+
+	this->viewport.rectangle.width = this->viewport.width;
+	this->viewport.rectangle.height = this->viewport.height;
+
+	this->viewport.clipFactor.x = this->viewport.viewFactor.x = (FLOAT)this->viewport.width / this->dwMode->width;
+	this->viewport.clipFactor.y = this->viewport.viewFactor.y = (FLOAT)this->viewport.height / this->dwMode->height;
+
+	if (config.aspectRatio && this->viewport.viewFactor.x != this->viewport.viewFactor.y)
+	{
+		if (this->viewport.viewFactor.x > this->viewport.viewFactor.y)
+		{
+			FLOAT fw = this->viewport.viewFactor.y * this->dwMode->width;
+			this->viewport.rectangle.width = (DWORD)MathRound(fw);
+
+			this->viewport.point.x = ((FLOAT)this->viewport.width - fw) / 2.0f;
+			this->viewport.rectangle.x = (DWORD)MathRound(this->viewport.point.x);
+
+			this->viewport.clipFactor.x = this->viewport.viewFactor.y;
+		}
+		else
+		{
+			FLOAT fh = this->viewport.viewFactor.x * this->dwMode->height;
+			this->viewport.rectangle.height = (DWORD)MathRound(fh);
+
+			this->viewport.point.y = ((FLOAT)this->viewport.height - fh) / 2.0f;
+			this->viewport.rectangle.y = (DWORD)MathRound(this->viewport.point.y);
+
+			this->viewport.clipFactor.y = this->viewport.viewFactor.x;
+		}
+	}
+}
+
+VOID DirectDraw::CheckView()
+{
+	if (this->viewport.refresh)
+	{
+		this->viewport.refresh = FALSE;
+		this->CalcView();
+		GLViewport(this->viewport.rectangle.x, this->viewport.rectangle.y, this->viewport.rectangle.width, this->viewport.rectangle.height);
+
+		this->clearStage = 0;
+	}
+
+	if (++this->clearStage <= 2)
+		GLClear(GL_COLOR_BUFFER_BIT);
+}
+
+VOID DirectDraw::CaptureMouse(UINT uMsg, LPMSLLHOOKSTRUCT mInfo)
+{
+	if (config.windowedMode)
+	{
+		switch (uMsg)
+		{
+		case WM_MOUSEMOVE:
+		{
+			this->HookMouse(uMsg, mInfo);
+			break;
+		}
+
+		case WM_LBUTTONUP:
+		{
+			if (this->mbPressed & MK_LBUTTON)
+				this->HookMouse(uMsg, mInfo);
+
+			break;
+		}
+
+		case WM_RBUTTONUP:
+		{
+			if (this->mbPressed & MK_RBUTTON)
+				this->HookMouse(uMsg, mInfo);
+
+			break;
+		}
+
+		default: break;
+		}
+	}
+}
+
+VOID DirectDraw::HookMouse(UINT uMsg, LPMSLLHOOKSTRUCT mInfo)
+{
+	POINT point = mInfo->pt;
+	ScreenToClient(this->hWnd, &point);
+	RECT rect;
+	GetClientRect(hWnd, &rect);
+
+	if (point.x < rect.left || point.x > rect.right ||
+		point.y < rect.top || point.y > rect.bottom)
+	{
+		if (point.x < rect.left)
+			point.x = rect.left;
+		else if (point.x > rect.right)
+			point.x = rect.right;
+
+		if (point.y < rect.top)
+			point.y = rect.top;
+		else if (point.y > rect.bottom)
+			point.y = rect.bottom;
+
+		SendMessage(this->hWnd, uMsg, this->mbPressed, MAKELONG(point.x, point.y));
+	}
+}
+
+VOID DirectDraw::ScaleMouse(UINT uMsg, LPARAM* lParam)
+{
+	if (config.windowedMode)
+	{
+		INT xPos = GET_X_LPARAM(*lParam);
+		INT yPos = GET_Y_LPARAM(*lParam);
+
+		if (xPos < this->viewport.rectangle.x)
+			xPos = 0;
+		else if (xPos >= this->viewport.rectangle.x + this->viewport.rectangle.width)
+			xPos = this->dwMode->width - 1;
+		else
+			xPos = (INT)((FLOAT)(xPos - this->viewport.rectangle.x) / this->viewport.clipFactor.x);
+
+		if (yPos < this->viewport.rectangle.y)
+			yPos = 0;
+		else if (yPos >= this->viewport.rectangle.y + this->viewport.rectangle.height)
+			yPos = this->dwMode->height - 1;
+		else
+			yPos = (INT)((FLOAT)(yPos - this->viewport.rectangle.y) / this->viewport.clipFactor.y);
+
+		*lParam = MAKELONG(xPos, yPos);
+	}
+}
+
+#pragma optimize("", on)
+
 VOID DirectDraw::TakeScreenshot()
 {
 	if (OpenClipboard(NULL))
@@ -1091,139 +1228,6 @@ DirectDraw::DirectDraw(DirectDraw* lastObj)
 	this->isTakeSnapshot = FALSE;
 
 	MemoryZero(&this->windowPlacement, sizeof(WINDOWPLACEMENT));
-}
-
-VOID DirectDraw::CalcView()
-{
-	this->viewport.rectangle.x = this->viewport.rectangle.y = 0;
-	this->viewport.point.x = this->viewport.point.y = 0.0f;
-
-	this->viewport.rectangle.width = this->viewport.width;
-	this->viewport.rectangle.height = this->viewport.height;
-
-	this->viewport.clipFactor.x = this->viewport.viewFactor.x = (FLOAT)this->viewport.width / this->dwMode->width;
-	this->viewport.clipFactor.y = this->viewport.viewFactor.y = (FLOAT)this->viewport.height / this->dwMode->height;
-
-	if (config.aspectRatio && this->viewport.viewFactor.x != this->viewport.viewFactor.y)
-	{
-		if (this->viewport.viewFactor.x > this->viewport.viewFactor.y)
-		{
-			FLOAT fw = this->viewport.viewFactor.y * this->dwMode->width;
-			this->viewport.rectangle.width = (DWORD)MathRound(fw);
-
-			this->viewport.point.x = ((FLOAT)this->viewport.width - fw) / 2.0f;
-			this->viewport.rectangle.x = (DWORD)MathRound(this->viewport.point.x);
-
-			this->viewport.clipFactor.x = this->viewport.viewFactor.y;
-		}
-		else
-		{
-			FLOAT fh = this->viewport.viewFactor.x * this->dwMode->height;
-			this->viewport.rectangle.height = (DWORD)MathRound(fh);
-
-			this->viewport.point.y = ((FLOAT)this->viewport.height - fh) / 2.0f;
-			this->viewport.rectangle.y = (DWORD)MathRound(this->viewport.point.y);
-
-			this->viewport.clipFactor.y = this->viewport.viewFactor.x;
-		}
-	}
-}
-
-VOID DirectDraw::CheckView()
-{
-	if (this->viewport.refresh)
-	{
-		this->viewport.refresh = FALSE;
-		this->CalcView();
-		GLViewport(this->viewport.rectangle.x, this->viewport.rectangle.y, this->viewport.rectangle.width, this->viewport.rectangle.height);
-
-		this->clearStage = 0;
-	}
-
-	if (++this->clearStage <= 2)
-		GLClear(GL_COLOR_BUFFER_BIT);
-}
-
-VOID DirectDraw::CaptureMouse(UINT uMsg, LPMSLLHOOKSTRUCT mInfo)
-{
-	if (config.windowedMode)
-	{
-		switch (uMsg)
-		{
-		case WM_MOUSEMOVE:
-		{
-			this->HookMouse(uMsg, mInfo);
-			break;
-		}
-
-		case WM_LBUTTONUP:
-		{
-			if (this->mbPressed & MK_LBUTTON)
-				this->HookMouse(uMsg, mInfo);
-
-			break;
-		}
-
-		case WM_RBUTTONUP:
-		{
-			if (this->mbPressed & MK_RBUTTON)
-				this->HookMouse(uMsg, mInfo);
-
-			break;
-		}
-
-		default: break;
-		}
-	}
-}
-
-VOID DirectDraw::HookMouse(UINT uMsg, LPMSLLHOOKSTRUCT mInfo)
-{
-	POINT point = mInfo->pt;
-	ScreenToClient(this->hWnd, &point);
-	RECT rect;
-	GetClientRect(hWnd, &rect);
-
-	if (point.x < rect.left || point.x > rect.right ||
-		point.y < rect.top || point.y > rect.bottom)
-	{
-		if (point.x < rect.left)
-			point.x = rect.left;
-		else if (point.x > rect.right)
-			point.x = rect.right;
-
-		if (point.y < rect.top)
-			point.y = rect.top;
-		else if (point.y > rect.bottom)
-			point.y = rect.bottom;
-
-		SendMessage(this->hWnd, uMsg, this->mbPressed, MAKELONG(point.x, point.y));
-	}
-}
-
-VOID DirectDraw::ScaleMouse(UINT uMsg, LPARAM* lParam)
-{
-	if (config.windowedMode)
-	{
-		INT xPos = GET_X_LPARAM(*lParam);
-		INT yPos = GET_Y_LPARAM(*lParam);
-
-		if (xPos < this->viewport.rectangle.x)
-			xPos = 0;
-		else if (xPos >= this->viewport.rectangle.x + this->viewport.rectangle.width)
-			xPos = this->dwMode->width - 1;
-		else
-			xPos = (INT)((FLOAT)(xPos - this->viewport.rectangle.x) / this->viewport.clipFactor.x);
-
-		if (yPos < this->viewport.rectangle.y)
-			yPos = 0;
-		else if (yPos >= this->viewport.rectangle.y + this->viewport.rectangle.height)
-			yPos = this->dwMode->height - 1;
-		else
-			yPos = (INT)((FLOAT)(yPos - this->viewport.rectangle.y) / this->viewport.clipFactor.y);
-
-		*lParam = MAKELONG(xPos, yPos);
-	}
 }
 
 HRESULT DirectDraw::QueryInterface(REFIID riid, LPVOID* ppvObj)

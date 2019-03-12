@@ -52,7 +52,7 @@ BOOL __stdcall DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 		{
 			WNDCLASS wc = {
-				CS_HREDRAW | CS_VREDRAW | CS_OWNDC | CS_DBLCLKS,
+				CS_HREDRAW | CS_VREDRAW | CS_OWNDC,
 				DefWindowProc,
 				0, 0,
 				hDllModule,

@@ -397,6 +397,8 @@ namespace Window
 					WindowProc(hWnd, WM_COMMAND, IDM_WINDOW_FPSCOUNTER, NULL);
 				else if (wParam == 'M')
 					WindowProc(hWnd, WM_COMMAND, IDM_WINDOW_MOUSECAPTURE, NULL);
+				else if (wParam == VK_F4)
+					WindowProc(hWnd, WM_COMMAND, IDM_WINDOW_EXIT, NULL);
 
 				return NULL;
 			}
@@ -408,6 +410,15 @@ namespace Window
 				WindowProc(hWnd, WM_COMMAND, IDM_HELP_ABOUT, NULL);
 				return NULL;
 			}
+
+			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
+		}
+
+		case WM_MOUSEMOVE:
+		{
+			DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
+			if (ddraw)
+				ddraw->ScaleMouse(uMsg, &lParam);
 
 			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
 		}
@@ -430,6 +441,18 @@ namespace Window
 			if (ddraw)
 			{
 				ddraw->mbPressed |= MK_RBUTTON;
+				ddraw->ScaleMouse(uMsg, &lParam);
+			}
+
+			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
+		}
+
+		case WM_MBUTTONDOWN:
+		{
+			DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
+			if (ddraw)
+			{
+				ddraw->mbPressed |= MK_MBUTTON;
 				ddraw->ScaleMouse(uMsg, &lParam);
 			}
 
@@ -460,16 +483,14 @@ namespace Window
 			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
 		}
 
-		case WM_LBUTTONDBLCLK:
-		case WM_MBUTTONDOWN:
 		case WM_MBUTTONUP:
-		case WM_MBUTTONDBLCLK:
-		case WM_RBUTTONDBLCLK:
-		case WM_MOUSEMOVE:
 		{
 			DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
 			if (ddraw)
+			{
+				ddraw->mbPressed ^= MK_MBUTTON;
 				ddraw->ScaleMouse(uMsg, &lParam);
+			}
 
 			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
 		}
@@ -542,13 +563,10 @@ namespace Window
 		case WM_MOUSEMOVE:
 		case WM_LBUTTONDOWN:
 		case WM_LBUTTONUP:
-		case WM_LBUTTONDBLCLK:
 		case WM_RBUTTONDOWN:
 		case WM_RBUTTONUP:
-		case WM_RBUTTONDBLCLK:
 		case WM_MBUTTONDOWN:
 		case WM_MBUTTONUP:
-		case WM_MBUTTONDBLCLK:
 		case WM_SYSCOMMAND:
 		case WM_SYSKEYDOWN:
 		case WM_SYSKEYUP:

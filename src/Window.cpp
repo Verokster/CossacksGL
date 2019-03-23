@@ -402,14 +402,6 @@ namespace Window
 
 				return NULL;
 			}
-			else if (wParam == VK_F1)
-			{
-				if (!config.windowedMode)
-					WindowProc(hWnd, WM_COMMAND, IDM_WINDOW_FULLSCREEN, NULL);
-
-				WindowProc(hWnd, WM_COMMAND, IDM_HELP_ABOUT, NULL);
-				return NULL;
-			}
 
 			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
 		}

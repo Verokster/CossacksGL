@@ -109,7 +109,6 @@ DWORD __stdcall RenderThread(LPVOID lpParameter)
 	if (ddraw->hDc)
 	{
 		PIXELFORMATDESCRIPTOR pfd;
-		GL::PreparePixelFormatDescription(&pfd);
 		INT glPixelFormat = GL::PreparePixelFormat(&pfd);
 		if (!glPixelFormat)
 		{
@@ -1241,7 +1240,7 @@ ULONG DirectDraw::Release()
 	this->ReleaseMode();
 
 	if (ddrawList == this)
-		ddrawList = NULL;
+		ddrawList = this->last;
 	else
 	{
 		DirectDraw* ddraw = ddrawList;

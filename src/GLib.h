@@ -108,6 +108,7 @@ typedef BOOL(__stdcall *WGLDELETECONTEXT)(HGLRC glContext);
 typedef HGLRC(__stdcall *WGLCREATECONTEXTATTRIBSARB)(HDC hDC, HGLRC hshareContext, const DWORD *attribList);
 typedef BOOL(__stdcall *WGLCHOOSEPIXELFORMATARB) (HDC hDC, const INT* piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, INT *piFormats, UINT *nNumFormats);
 typedef BOOL(__stdcall *WGLCHOOSEPIXELFORMAT) (HDC hDC, const INT* piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, INT *piFormats, UINT *nNumFormats);
+typedef const CHAR* (__stdcall* WGLGETEXTENSIONSSTRING)();
 typedef BOOL(__stdcall *WGLSWAPINTERVAL)(INT interval);
 
 typedef const GLubyte* (__stdcall *GLGETSTRING)(GLenum name);
@@ -184,6 +185,7 @@ extern WGLCREATECONTEXT WGLCreateContext;
 extern WGLDELETECONTEXT WGLDeleteContext;
 extern WGLCREATECONTEXTATTRIBSARB WGLCreateContextAttribs;
 extern WGLCHOOSEPIXELFORMAT WGLChoosePixelFormat;
+extern WGLGETEXTENSIONSSTRING WGLGetExtensionsString;
 extern WGLSWAPINTERVAL WGLSwapInterval;
 
 extern GLGETSTRING GLGetString;

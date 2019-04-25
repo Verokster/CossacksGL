@@ -91,6 +91,7 @@ struct ConfigItems
 	BOOL mouseCapture;
 	BOOL vSync;
 	BOOL singleThread;
+	BOOL singleWindow;
 
 	HCURSOR cursor;
 	HMENU menu;

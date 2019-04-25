@@ -56,6 +56,13 @@ namespace Main
 		return NULL;
 	}
 
+	VOID __fastcall ShowError(UINT id, CHAR* file, DWORD line)
+	{
+		CHAR message[256];
+		LoadString(hDllModule, id, message, sizeof(message));
+		ShowError(message, file, line);
+	}
+
 	VOID __fastcall ShowError(CHAR* message, CHAR* file, DWORD line)
 	{
 		CHAR dest[400];

@@ -97,11 +97,40 @@ namespace Window
 			SetWindowLong(hDlg, GWL_EXSTYLE, NULL);
 			EnumChildWindows(hDlg, EnumChildProc, NULL);
 
-			CHAR email[50];
-			GetDlgItemText(hDlg, IDC_LNK_EMAIL, email, sizeof(email) - 1);
-			CHAR anchor[256];
-			StrPrint(anchor, "<A HREF=\"mailto:%s\">%s</A>", email, email);
-			SetDlgItemText(hDlg, IDC_LNK_EMAIL, anchor);
+			CHAR path[MAX_PATH];
+			CHAR temp[100];
+
+			GetModuleFileName(hDllModule, path, sizeof(path));
+
+			DWORD hSize;
+			DWORD verSize = GetFileVersionInfoSize(path, &hSize);
+
+			if (verSize)
+			{
+				CHAR* verData = (CHAR*)MemoryAlloc(verSize);
+				{
+					if (GetFileVersionInfo(path, hSize, verSize, verData))
+					{
+						VOID* buffer;
+						UINT size;
+						if (VerQueryValue(verData, "\\", &buffer, &size) && size)
+						{
+							VS_FIXEDFILEINFO* verInfo = (VS_FIXEDFILEINFO*)buffer;
+
+							GetDlgItemText(hDlg, IDC_VERSION, temp, sizeof(temp));
+							StrPrint(path, temp, HIWORD(verInfo->dwProductVersionMS), LOWORD(verInfo->dwProductVersionMS), HIWORD(verInfo->dwProductVersionLS), LOWORD(verInfo->dwFileVersionLS));
+							SetDlgItemText(hDlg, IDC_VERSION, path);
+						}
+					}
+				}
+				MemoryFree(verData);
+			}
+
+			if (GetDlgItemText(hDlg, IDC_LNK_EMAIL, temp, sizeof(temp)))
+			{
+				StrPrint(path, "<A HREF=\"mailto:%s\">%s</A>", temp, temp);
+				SetDlgItemText(hDlg, IDC_LNK_EMAIL, path);
+			}
 
 			break;
 		}
@@ -171,7 +200,7 @@ namespace Window
 		case WM_MOVE:
 		{
 			DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
-			if (ddraw && ddraw->hDraw)
+			if (ddraw && ddraw->hDraw && !config.singleWindow)
 			{
 				DWORD stye = GetWindowLong(ddraw->hDraw, GWL_STYLE);
 				if (stye & WS_POPUP)
@@ -200,7 +229,7 @@ namespace Window
 			DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
 			if (ddraw)
 			{
-				if (ddraw->hDraw)
+				if (ddraw->hDraw && !config.singleWindow)
 					SetWindowPos(ddraw->hDraw, NULL, 0, 0, LOWORD(lParam), HIWORD(lParam), SWP_NOZORDER | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOREPOSITION | SWP_NOOWNERZORDER | SWP_NOACTIVATE | SWP_NOSENDCHANGING);
 
 				if (ddraw->dwMode)
@@ -372,7 +401,7 @@ namespace Window
 				if (hActCtx && hActCtx != INVALID_HANDLE_VALUE && !ActivateActCtxC(hActCtx, &cookie))
 					cookie = NULL;
 
-				res = DialogBoxParam(hDllModule, MAKEINTRESOURCE(IDD_ABOUT), hWnd, (DLGPROC)AboutProc, NULL);
+				res = DialogBoxParam(hDllModule, cookie ? MAKEINTRESOURCE(IDD_ABOUT) : MAKEINTRESOURCE(IDD_ABOUT_OLD), hWnd, (DLGPROC)AboutProc, NULL);
 
 				if (cookie)
 					DeactivateActCtxC(0, cookie);
@@ -391,7 +420,7 @@ namespace Window
 		{
 			if (HIWORD(lParam) & KF_ALTDOWN)
 			{
-				if (wParam == VK_RETURN)
+				if (wParam == 'W')
 					WindowProc(hWnd, WM_COMMAND, IDM_WINDOW_FULLSCREEN, NULL);
 				else if (wParam == 'F')
 					WindowProc(hWnd, WM_COMMAND, IDM_WINDOW_FPSCOUNTER, NULL);

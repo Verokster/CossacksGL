@@ -76,6 +76,17 @@ namespace Config
 			} while (--count);
 		}
 
+		HMODULE hLibrary = LoadLibrary("NTDLL.dll");
+		if (hLibrary)
+		{
+			if (GetProcAddress(hLibrary, "wine_get_version"))
+				config.singleWindow = TRUE;
+			FreeLibrary(hLibrary);
+		}
+
+		if (!config.singleWindow)
+			config.singleWindow = Config::Get(CONFIG, "SingleWindow", FALSE);
+
 		if (!config.isExist)
 		{
 			config.windowedMode = TRUE;

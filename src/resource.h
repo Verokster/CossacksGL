@@ -28,14 +28,14 @@
 //
 #define IDM_MANIFEST                    2
 
-#define IDR_VERTEX_SIMPLE			20
-#define IDR_FRAGMENT_SIMPLE			21
+#define IDR_VERTEX_SIMPLE				20
+#define IDR_FRAGMENT_SIMPLE				21
 
-#define IDR_VERTEX_NEAREST			IDR_VERTEX_SIMPLE //22
-#define IDR_FRAGMENT_NEAREST		23
+#define IDR_VERTEX_NEAREST				IDR_VERTEX_SIMPLE //22
+#define IDR_FRAGMENT_NEAREST			23
 
-#define IDR_VERTEX_LINEAR			24
-#define IDR_FRAGMENT_LINEAR			25
+#define IDR_VERTEX_LINEAR				24
+#define IDR_FRAGMENT_LINEAR				25
 
 #define IDR_MENU						100
 
@@ -49,7 +49,20 @@
 #define IDM_HELP_ABOUT					108
 
 #define IDD_ABOUT						200
+#define IDD_ABOUT_OLD					201
+
+#define IDS_ERROR_CHOOSE_PF				300
+#define IDS_ERROR_SET_PF				301
+#define IDS_ERROR_DESCRIBE_PF			302
+#define IDS_ERROR_NEED_PALETTE			303
+#define IDS_ERROR_BAD_PF				304
+#define IDS_ERROR_ARB_VERSION			305
+#define IDS_ERROR_ARB_PROFILE			306
+#define IDS_ERROR_LOAD_RESOURCE			307
+#define IDS_ERROR_COMPILE_SHADER		308
+
 #define IDC_LNK_EMAIL					2
+#define IDC_VERSION						3
 
 // Next default values for new objects
 // 

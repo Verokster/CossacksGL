@@ -114,21 +114,21 @@ DWORD __stdcall RenderThread(LPVOID lpParameter)
 		{
 			glPixelFormat = ChoosePixelFormat(ddraw->hDc, &pfd);
 			if (!glPixelFormat)
-				Main::ShowError("ChoosePixelFormat failed", __FILE__, __LINE__);
+				Main::ShowError(IDS_ERROR_CHOOSE_PF, __FILE__, __LINE__);
 			else if (pfd.dwFlags & PFD_NEED_PALETTE)
-				Main::ShowError("Needs palette", __FILE__, __LINE__);
+				Main::ShowError(IDS_ERROR_NEED_PALETTE, __FILE__, __LINE__);
 		}
 
 		if (!SetPixelFormat(ddraw->hDc, glPixelFormat, &pfd))
-			Main::ShowError("SetPixelFormat failed", __FILE__, __LINE__);
+			Main::ShowError(IDS_ERROR_SET_PF, __FILE__, __LINE__);
 
 		GL::ResetPixelFormatDescription(&pfd);
 		if (DescribePixelFormat(ddraw->hDc, glPixelFormat, sizeof(PIXELFORMATDESCRIPTOR), &pfd) == NULL)
-			Main::ShowError("DescribePixelFormat failed", __FILE__, __LINE__);
+			Main::ShowError(IDS_ERROR_DESCRIBE_PF, __FILE__, __LINE__);
 
 		if ((pfd.iPixelType != PFD_TYPE_RGBA) ||
-			(pfd.cRedBits < 5) || (pfd.cGreenBits < 5) || (pfd.cBlueBits < 5))
-			Main::ShowError("Bad pixel type", __FILE__, __LINE__);
+			(pfd.cRedBits < 5) || (pfd.cGreenBits < 6) || (pfd.cBlueBits < 5))
+			Main::ShowError(IDS_ERROR_BAD_PF, __FILE__, __LINE__);
 
 		HGLRC hRc = WGLCreateContext(ddraw->hDc);
 		if (hRc)
@@ -325,24 +325,11 @@ VOID DirectDraw::RenderOld()
 							else
 								isValid = FALSE;
 						}
-						else if (WGLSwapInterval)
+						else if (isVSync != config.vSync)
 						{
-							if (!isVSync)
-							{
-								if (config.vSync)
-								{
-									isVSync = TRUE;
-									WGLSwapInterval(1);
-								}
-							}
-							else
-							{
-								if (!config.vSync)
-								{
-									isVSync = FALSE;
-									WGLSwapInterval(0);
-								}
-							}
+							isVSync = config.vSync;
+							if (WGLSwapInterval)
+								WGLSwapInterval(isVSync);
 						}
 
 						if (isValid)
@@ -541,8 +528,7 @@ VOID DirectDraw::RenderOld()
 							}
 
 							SwapBuffers(this->hDc);
-							if (isVSync)
-								GLFinish();
+							GLFinish();
 
 							if (this->isTakeSnapshot)
 							{
@@ -707,24 +693,11 @@ VOID DirectDraw::RenderNew()
 										else
 											isValid = FALSE;
 									}
-									else if (WGLSwapInterval)
+									else if (isVSync != config.vSync)
 									{
-										if (!isVSync)
-										{
-											if (config.vSync)
-											{
-												isVSync = TRUE;
-												WGLSwapInterval(1);
-											}
-										}
-										else
-										{
-											if (!config.vSync)
-											{
-												isVSync = FALSE;
-												WGLSwapInterval(0);
-											}
-										}
+										isVSync = config.vSync;
+										if (WGLSwapInterval)
+											WGLSwapInterval(isVSync);
 									}
 
 									if (isValid)
@@ -806,8 +779,7 @@ VOID DirectDraw::RenderNew()
 
 										GLDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 										SwapBuffers(this->hDc);
-										if (isVSync)
-											GLFinish();
+										GLFinish();
 
 										if (this->isTakeSnapshot)
 										{
@@ -869,24 +841,11 @@ VOID DirectDraw::RenderNew()
 										else
 											isValid = FALSE;
 									}
-									else if (WGLSwapInterval)
+									else if (isVSync != config.vSync)
 									{
-										if (!isVSync)
-										{
-											if (config.vSync)
-											{
-												isVSync = TRUE;
-												WGLSwapInterval(1);
-											}
-										}
-										else
-										{
-											if (!config.vSync)
-											{
-												isVSync = FALSE;
-												WGLSwapInterval(0);
-											}
-										}
+										isVSync = config.vSync;
+										if (WGLSwapInterval)
+											WGLSwapInterval(isVSync);
 									}
 
 									if (isValid)
@@ -905,8 +864,7 @@ VOID DirectDraw::RenderNew()
 
 										GLDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 										SwapBuffers(this->hDc);
-										if (isVSync)
-											GLFinish();
+										GLFinish();
 
 										if (this->isTakeSnapshot)
 										{
@@ -1140,39 +1098,45 @@ VOID DirectDraw::RenderStart()
 	RECT rect;
 	GetClientRect(this->hWnd, &rect);
 
-	if (!config.windowedMode)
-	{
-		this->hDraw = CreateWindowEx(
-			WS_EX_CONTROLPARENT | WS_EX_TOPMOST,
-			WC_DRAW,
-			NULL,
-			mciVideo.deviceId ? WS_POPUP : (WS_VISIBLE | WS_POPUP),
-			0, 0,
-			rect.right, rect.bottom,
-			this->hWnd,
-			NULL,
-			hDllModule,
-			NULL);
-	}
+	if (config.singleWindow)
+		this->hDraw = this->hWnd;
 	else
 	{
-		this->hDraw = CreateWindowEx(
-			WS_EX_CONTROLPARENT,
-			WC_DRAW,
-			NULL,
-			mciVideo.deviceId ? (WS_CHILD | WS_MAXIMIZE) : (WS_VISIBLE | WS_CHILD | WS_MAXIMIZE),
-			0, 0,
-			rect.right, rect.bottom,
-			this->hWnd,
-			NULL,
-			hDllModule,
-			NULL);
+		if (!config.windowedMode)
+		{
+			this->hDraw = CreateWindowEx(
+				WS_EX_CONTROLPARENT | WS_EX_TOPMOST,
+				WC_DRAW,
+				NULL,
+				mciVideo.deviceId ? WS_POPUP : (WS_VISIBLE | WS_POPUP),
+				0, 0,
+				rect.right, rect.bottom,
+				this->hWnd,
+				NULL,
+				hDllModule,
+				NULL);
+		}
+		else
+		{
+			this->hDraw = CreateWindowEx(
+				WS_EX_CONTROLPARENT,
+				WC_DRAW,
+				NULL,
+				mciVideo.deviceId ? (WS_CHILD | WS_MAXIMIZE) : (WS_VISIBLE | WS_CHILD | WS_MAXIMIZE),
+				0, 0,
+				rect.right, rect.bottom,
+				this->hWnd,
+				NULL,
+				hDllModule,
+				NULL);
+		}
+	
+		Window::SetCapturePanel(this->hDraw);
+
+		SetClassLongPtr(this->hDraw, GCLP_HBRBACKGROUND, NULL);
+		RedrawWindow(this->hDraw, NULL, NULL, RDW_INVALIDATE);
 	}
 
-	Window::SetCapturePanel(this->hDraw);
-
-	SetClassLongPtr(this->hDraw, GCLP_HBRBACKGROUND, NULL);
-	RedrawWindow(this->hDraw, NULL, NULL, RDW_INVALIDATE);
 	SetClassLongPtr(this->hWnd, GCLP_HBRBACKGROUND, NULL);
 	RedrawWindow(this->hWnd, NULL, NULL, RDW_INVALIDATE);
 
@@ -1197,12 +1161,15 @@ VOID DirectDraw::RenderStop()
 	CloseHandle(this->hDrawThread);
 	this->hDrawThread = NULL;
 
-	BOOL wasFull = GetWindowLong(this->hDraw, GWL_STYLE) & WS_POPUP;
-	if (DestroyWindow(this->hDraw))
-		this->hDraw = NULL;
+	if (!config.singleWindow)
+	{
+		BOOL wasFull = GetWindowLong(this->hDraw, GWL_STYLE) & WS_POPUP;
+		if (DestroyWindow(this->hDraw))
+			this->hDraw = NULL;
 
-	if (wasFull)
-		GL::ResetContext();
+		if (wasFull)
+			GL::ResetContext();
+	}
 
 	glVersion = NULL;
 	Window::CheckMenu();

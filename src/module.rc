@@ -15,7 +15,25 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // Manifest
 //
 
-IDM_MANIFEST            RT_MANIFEST             "module.manifest"
+IDM_MANIFEST				RT_MANIFEST             "module.manifest"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE DISCARDABLE
+BEGIN
+	IDS_ERROR_CHOOSE_PF				"ChoosePixelFormat failed"
+	IDS_ERROR_SET_PF				"SetPixelFormat failed"
+	IDS_ERROR_DESCRIBE_PF			"DescribePixelFormat failed"
+	IDS_ERROR_NEED_PALETTE			"Needs palette"
+	IDS_ERROR_BAD_PF				"Bad pixel type"
+	IDS_ERROR_ARB_VERSION			"Invalid ARB version"
+	IDS_ERROR_ARB_PROFILE			"Invalid ARB profile"
+	IDS_ERROR_LOAD_RESOURCE			"Load resource failed"
+	IDS_ERROR_COMPILE_SHADER		"Compile shader failed"
+END
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -24,25 +42,25 @@ IDM_MANIFEST            RT_MANIFEST             "module.manifest"
 
 IDR_MENU MENU
 BEGIN
-    POPUP "&Window"
-    BEGIN
-        MENUITEM "&Full Screen\aAlt+Enter",		IDM_WINDOW_FULLSCREEN
+	POPUP "&Window"
+	BEGIN
+		MENUITEM "&Full Screen\aAlt+W",		IDM_WINDOW_FULLSCREEN
 		MENUITEM "Enable VSync",				IDM_WINDOW_VSYNC
-        MENUITEM "FPS &Counter\aAlt+F",			IDM_WINDOW_FPSCOUNTER
+		MENUITEM "FPS &Counter\aAlt+F",			IDM_WINDOW_FPSCOUNTER
 		MENUITEM SEPARATOR
 		MENUITEM "&Mouse Capture\aAlt+M",		IDM_WINDOW_MOUSECAPTURE
 		MENUITEM SEPARATOR
 		MENUITEM "Exit\aAlt+F4",				IDM_WINDOW_EXIT
-    END
+	END
 	POPUP "&Image"
 	BEGIN
 		MENUITEM "Enable &Filtering",			IDM_IMAGE_FILTERING
 		MENUITEM "Keep &Aspect Ratio",			IDM_IMAGE_ASPECTRATIO
 	END
-    POPUP "&Help"
-    BEGIN
-        MENUITEM "&About...",				IDM_HELP_ABOUT
-    END
+	POPUP "&Help"
+	BEGIN
+		MENUITEM "&About...",				IDM_HELP_ABOUT
+	END
 END
 
 /////////////////////////////////////////////////////////////////////////////
@@ -54,52 +72,25 @@ IDD_ABOUT DIALOGEX 22,17,162,90
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP
 FONT 8, "System", 0, 0, 0x1
 BEGIN
-    CTEXT           "Cossacks && American Conquest\nOpenGL Wrapper",1002,0,6,162,18
-    CTEXT           "Version 2.14   Build 222",IDC_STATIC,0,30,162,8
-    CTEXT           "Copyright © 2019 Verok",1006,0,48,162,8
-	DEFPUSHBUTTON   "OK",IDOK,65,72,32,14,WS_GROUP
-	CONTROL         "verokster@gmail.com",IDC_LNK_EMAIL,"SysLink",WS_TABSTOP,48,57,72,12
-    ICON            "",IDC_STATIC,8,17,20,20
+	CTEXT			"Cossacks && American Conquest\nOpenGL Wrapper",IDC_STATIC,0,6,162,18
+	CTEXT			"Version %d.%d%d   Build %d",IDC_VERSION,0,30,162,8
+	CTEXT			"Copyright © 2019 Verok",IDC_STATIC,0,48,162,8
+	DEFPUSHBUTTON	"OK",IDOK,65,72,32,14,WS_GROUP
+	CONTROL			"verokster@gmail.com",IDC_LNK_EMAIL,"SysLink",WS_TABSTOP,48,57,72,12
+	ICON			"",IDC_STATIC,8,17,20,20
 END
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// Version
-//
-
-VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2019,3,22,222
- PRODUCTVERSION 2,1,4,0
- FILEFLAGSMASK 0x17L
-#ifdef _DEBUG
- FILEFLAGS VS_FF_DEBUG
-#else
- FILEFLAGS 0x0L
-#endif
- FILEOS VOS__WINDOWS32
- FILETYPE VFT_DLL
- FILESUBTYPE VFT2_UNKNOWN
+IDD_ABOUT_OLD DIALOGEX 22,17,162,90
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP
+FONT 8, "System", 0, 0, 0x1
 BEGIN
-    BLOCK "StringFileInfo"
-    BEGIN
-        BLOCK "040904b0"
-        BEGIN
-            VALUE "FileDescription", "Cossacks OpenGL wrapper"
-            VALUE "FileVersion", "2019.03.22.222"
-            VALUE "LegalCopyright", "© 2019 Verok (verokster@gmail.com)"
-            VALUE "OriginalFilename", "dplayx.dll"
-            VALUE "ProductVersion", "2.1.4"
-			VALUE "ProductName", "CossacksGL"
-        END
-    END
-    BLOCK "VarFileInfo"
-    BEGIN
-        VALUE "Translation", 0x409, 1200
-    END
+	CTEXT			"Cossacks && American Conquest\nOpenGL Wrapper",IDC_STATIC,0,6,162,18
+	CTEXT			"Version %d.%d%d   Build %d",IDC_VERSION,0,30,162,8
+	CTEXT			"Copyright © 2019 Verok",IDC_STATIC,0,48,162,8
+	DEFPUSHBUTTON	"OK",IDOK,65,72,32,14,WS_GROUP
+	CTEXT			"verokster@gmail.com",IDC_STATIC,48,57,72,12
+	ICON			"",IDC_STATIC,8,17,20,20
 END
-
-#endif    // English (U.S.) resources
-/////////////////////////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -113,7 +104,41 @@ IDR_FRAGMENT_NEAREST			RCDATA				".\\shaders\\nearest.fgl"
 IDR_VERTEX_LINEAR				RCDATA				".\\shaders\\linear.vgl"
 IDR_FRAGMENT_LINEAR				RCDATA				".\\shaders\\linear.fgl"
 
-#ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
-#endif    // not APSTUDIO_INVOKED
+//
+// Version
+//
 
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 2019,4,23,231
+ PRODUCTVERSION 2,1,4,0
+ FILEFLAGSMASK 0x17L
+#ifdef _DEBUG
+ FILEFLAGS VS_FF_DEBUG
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS VOS__WINDOWS32
+ FILETYPE VFT_DLL
+ FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+	BLOCK "StringFileInfo"
+	BEGIN
+		BLOCK "040904b0"
+		BEGIN
+			VALUE "FileDescription", "Cossacks OpenGL wrapper"
+			VALUE "FileVersion", "2019.04.23.231"
+			VALUE "LegalCopyright", "© 2019 Verok (verokster@gmail.com)"
+			VALUE "OriginalFilename", "dplayx.dll"
+			VALUE "ProductVersion", "2.1.4"
+			VALUE "ProductName", "CossacksGL"
+		END
+	END
+	BLOCK "VarFileInfo"
+	BEGIN
+		VALUE "Translation", 0x409, 1200
+	END
+END
+
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////

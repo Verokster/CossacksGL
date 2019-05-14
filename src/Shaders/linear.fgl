@@ -41,12 +41,19 @@ uniform vec2 texSize;
 
 COMPAT_IN vec2 fTexCoord;
 
+float smr(float x) {
+	return x * x * (3.0 - 2.0 * x);
+}
+
 void main() {
 	vec2 texel = floor(fTexCoord);
 	
 	#define TEX(x, y) COMPAT_TEXTURE_1D(pal01, COMPAT_TEXTURE_2D(tex01, (texel + 0.5 + vec2(x, y)) / texSize).a).rgb
 
 	vec2 phase = fTexCoord - texel;
+	phase.x = smr(phase.x);
+	phase.y = smr(phase.y);
+
 	vec3 color = mix(
 		mix(TEX(0.0, 0.0), TEX(1.0, 0.0), phase.x),
 		mix(TEX(0.0, 1.0), TEX(1.0, 1.0), phase.x),

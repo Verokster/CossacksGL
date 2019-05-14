@@ -95,7 +95,7 @@
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <FixedBaseAddress>true</FixedBaseAddress>
-      <OutputFile>D:\Games\Cossacks - European Wars\dplayx.dll</OutputFile>
+      <OutputFile>D:\Games\Cossacks - European Wars\dplayx$(TargetExt)</OutputFile>
       <EntryPointSymbol>DllMain</EntryPointSymbol>
     </Link>
     <Bscmake>
@@ -146,7 +146,7 @@
       </MergeSections>
       <ModuleDefinitionFile>$(ProjectDir)\module.def</ModuleDefinitionFile>
       <EntryPointSymbol>DllMain</EntryPointSymbol>
-      <OutputFile>D:\Games\Cossacks - European Wars\dplayx.dll</OutputFile>
+      <OutputFile>D:\Games\Cossacks - European Wars\dplayx$(TargetExt)</OutputFile>
       <ProgramDatabaseFile />
       <IgnoreEmbeddedIDL>true</IgnoreEmbeddedIDL>
       <TurnOffAssemblyGeneration>true</TurnOffAssemblyGeneration>

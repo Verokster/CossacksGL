@@ -53,7 +53,7 @@ HRESULT DirectDraw::DuplicateSurface(LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE*) 
 HRESULT DirectDraw::WaitForVerticalBlank(DWORD, HANDLE) { return DD_OK; }
 #pragma endregion
 
-#define RECOUNT 64 
+#define RECOUNT 64
 #define WHITE 0xFFFFFFFF;
 
 DisplayMode resolutionsList[64];
@@ -126,14 +126,13 @@ DWORD __stdcall RenderThread(LPVOID lpParameter)
 		if (DescribePixelFormat(ddraw->hDc, glPixelFormat, sizeof(PIXELFORMATDESCRIPTOR), &pfd) == NULL)
 			Main::ShowError(IDS_ERROR_DESCRIBE_PF, __FILE__, __LINE__);
 
-		if ((pfd.iPixelType != PFD_TYPE_RGBA) ||
-			(pfd.cRedBits < 5) || (pfd.cGreenBits < 6) || (pfd.cBlueBits < 5))
+		if ((pfd.iPixelType != PFD_TYPE_RGBA) || (pfd.cRedBits < 5) || (pfd.cGreenBits < 6) || (pfd.cBlueBits < 5))
 			Main::ShowError(IDS_ERROR_BAD_PF, __FILE__, __LINE__);
 
-		HGLRC hRc = WGLCreateContext(ddraw->hDc);
+		HGLRC hRc = wglCreateContext(ddraw->hDc);
 		if (hRc)
 		{
-			if (WGLMakeCurrent(ddraw->hDc, hRc))
+			if (wglMakeCurrent(ddraw->hDc, hRc))
 			{
 				GL::CreateContextAttribs(ddraw->hDc, &hRc);
 				if (glVersion >= GL_VER_2_0)
@@ -157,10 +156,10 @@ DWORD __stdcall RenderThread(LPVOID lpParameter)
 				else
 					ddraw->RenderOld();
 
-				WGLMakeCurrent(ddraw->hDc, NULL);
+				wglMakeCurrent(ddraw->hDc, NULL);
 			}
 
-			WGLDeleteContext(hRc);
+			wglDeleteContext(hRc);
 		}
 
 		::ReleaseDC(ddraw->hDraw, ddraw->hDc);
@@ -224,7 +223,7 @@ VOID DirectDraw::RenderOld()
 	DWORD maxTexSize = maxAllow < glMaxTexSize ? maxAllow : glMaxTexSize;
 	DWORD texPitch = this->pitch / (this->dwMode->bpp >> 3);
 
-	VOID* pixelBuffer = AlignedAlloc(maxTexSize * maxTexSize * sizeof(DWORD), 16);
+	VOID* pixelBuffer = AlignedAlloc(maxTexSize * maxTexSize * sizeof(DWORD));
 	{
 		DWORD framePerWidth = this->dwMode->width / maxTexSize + (this->dwMode->width % maxTexSize ? 1 : 0);
 		DWORD framePerHeight = this->dwMode->height / maxTexSize + (this->dwMode->height % maxTexSize ? 1 : 0);
@@ -401,8 +400,7 @@ VOID DirectDraw::RenderOld()
 
 												for (DWORD y = 0; y < FPS_HEIGHT; ++y)
 												{
-													BYTE* pix = (BYTE*)pixelBuffer + (FPS_Y + y) * frame->rect.width +
-														FPS_X + FPS_WIDTH * (dcount - 1);
+													BYTE* pix = (BYTE*)pixelBuffer + (FPS_Y + y) * frame->rect.width + FPS_X + FPS_WIDTH * (dcount - 1);
 
 													WORD check = *lpDig++;
 													DWORD width = FPS_WIDTH;
@@ -451,8 +449,7 @@ VOID DirectDraw::RenderOld()
 
 												for (DWORD y = 0; y < FPS_HEIGHT; ++y)
 												{
-													DWORD* pix = (DWORD*)pixelBuffer + (FPS_Y + y) * frame->rect.width +
-														FPS_X + FPS_WIDTH * (dcount - 1);
+													DWORD* pix = (DWORD*)pixelBuffer + (FPS_Y + y) * frame->rect.width + FPS_X + FPS_WIDTH * (dcount - 1);
 
 													WORD check = *lpDig++;
 													DWORD width = FPS_WIDTH;
@@ -568,7 +565,8 @@ VOID DirectDraw::RenderNew()
 {
 	DWORD maxSize = this->dwMode->width > this->dwMode->height ? this->dwMode->width : this->dwMode->height;
 	DWORD maxTexSize = 1;
-	while (maxTexSize < maxSize) maxTexSize <<= 1;
+	while (maxTexSize < maxSize)
+		maxTexSize <<= 1;
 	FLOAT texWidth = this->dwMode->width == maxTexSize ? 1.0f : FLOAT((FLOAT)this->dwMode->width / maxTexSize);
 	FLOAT texHeight = this->dwMode->height == maxTexSize ? 1.0f : FLOAT((FLOAT)this->dwMode->height / maxTexSize);
 
@@ -600,7 +598,7 @@ VOID DirectDraw::RenderNew()
 		{ 0, glslVersion, IDR_VERTEX_LINEAR, IDR_FRAGMENT_LINEAR, (GLfloat*)mvpMatrix },
 	};
 
-	ShaderProgram* program = this->dwMode->bpp != 8 ? &shaders.simple : (config.windowedMode && config.filtering ? program = &shaders.linear : &shaders.nearest);
+	ShaderProgram* program = this->dwMode->bpp != 8 ? &shaders.simple : (config.windowedMode && config.filtering ? &shaders.linear : &shaders.nearest);
 	{
 		GLuint arrayName;
 		if (glVersion >= GL_VER_3_0)
@@ -674,7 +672,7 @@ VOID DirectDraw::RenderNew()
 							GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 							GLTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, maxTexSize, maxTexSize, GL_NONE, GL_ALPHA, GL_UNSIGNED_BYTE, NULL);
 
-							VOID* pixelBuffer = AlignedAlloc(FPS_HEIGHT * FPS_WIDTH * 4, 16);
+							VOID* pixelBuffer = AlignedAlloc(FPS_HEIGHT * FPS_WIDTH * 4);
 							{
 								do
 								{
@@ -718,7 +716,7 @@ VOID DirectDraw::RenderNew()
 										if (this->isStateChanged)
 										{
 											this->isStateChanged = FALSE;
-											UseShaderProgram(config.windowedMode && config.filtering ? program = &shaders.linear : &shaders.nearest, maxTexSize);
+											UseShaderProgram(config.windowedMode && config.filtering ? &shaders.linear : &shaders.nearest, maxTexSize);
 										}
 
 										if (this->isPalChanged)
@@ -755,11 +753,9 @@ VOID DirectDraw::RenderNew()
 
 												for (DWORD y = 0; y < FPS_HEIGHT; ++y)
 												{
-													BYTE* idx = this->indexBuffer + (FPS_Y + y) * texPitch +
-														FPS_X + FPS_WIDTH * (dcount - 1);
+													BYTE* idx = this->indexBuffer + (FPS_Y + y) * texPitch + FPS_X + FPS_WIDTH * (dcount - 1);
 
-													BYTE* pix = (BYTE*)pixelBuffer + y * FPS_WIDTH * digCount +
-														FPS_WIDTH * (dcount - 1);
+													BYTE* pix = (BYTE*)pixelBuffer + y * FPS_WIDTH * digCount + FPS_WIDTH * (dcount - 1);
 
 													WORD check = *lpDig++;
 													DWORD width = FPS_WIDTH;
@@ -983,7 +979,8 @@ VOID DirectDraw::CaptureMouse(UINT uMsg, LPMSLLHOOKSTRUCT mInfo)
 			break;
 		}
 
-		default: break;
+		default:
+			break;
 		}
 	}
 }
@@ -995,8 +992,7 @@ VOID DirectDraw::HookMouse(UINT uMsg, LPMSLLHOOKSTRUCT mInfo)
 	RECT rect;
 	GetClientRect(hWnd, &rect);
 
-	if (point.x < rect.left || point.x > rect.right ||
-		point.y < rect.top || point.y > rect.bottom)
+	if (point.x < rect.left || point.x > rect.right || point.y < rect.top || point.y > rect.bottom)
 	{
 		if (point.x < rect.left)
 			point.x = rect.left;
@@ -1093,7 +1089,6 @@ VOID DirectDraw::RenderStart()
 		return;
 
 	this->isFinish = FALSE;
-	GL::Load();
 
 	RECT rect;
 	GetClientRect(this->hWnd, &rect);
@@ -1130,7 +1125,7 @@ VOID DirectDraw::RenderStart()
 				hDllModule,
 				NULL);
 		}
-	
+
 		Window::SetCapturePanel(this->hDraw);
 
 		SetClassLongPtr(this->hDraw, GCLP_HBRBACKGROUND, NULL);
@@ -1161,15 +1156,13 @@ VOID DirectDraw::RenderStop()
 	CloseHandle(this->hDrawThread);
 	this->hDrawThread = NULL;
 
+	BOOL wasFull = GetWindowLong(this->hDraw, GWL_STYLE) & WS_POPUP;
 	if (!config.singleWindow)
-	{
-		BOOL wasFull = GetWindowLong(this->hDraw, GWL_STYLE) & WS_POPUP;
-		if (DestroyWindow(this->hDraw))
-			this->hDraw = NULL;
+		DestroyWindow(this->hDraw);
 
-		if (wasFull)
-			GL::ResetContext();
-	}
+	this->hDraw = NULL;
+	if (wasFull)
+		GL::ResetPixelFormat();
 
 	glVersion = NULL;
 	Window::CheckMenu();
@@ -1238,15 +1231,11 @@ HRESULT DirectDraw::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceD
 	DWORD count = 0;
 	for (DWORD i = 0; EnumDisplaySettings(NULL, i, &devMode); ++i)
 	{
-		if ((devMode.dmFields & (DM_PELSWIDTH | DM_PELSHEIGHT | DM_BITSPERPEL)) == (DM_PELSWIDTH | DM_PELSHEIGHT | DM_BITSPERPEL) &&
-			devMode.dmPelsWidth >= 640 && devMode.dmPelsHeight >= 480)
+		if ((devMode.dmFields & (DM_PELSWIDTH | DM_PELSHEIGHT | DM_BITSPERPEL)) == (DM_PELSWIDTH | DM_PELSHEIGHT | DM_BITSPERPEL) && devMode.dmPelsWidth >= 640 && devMode.dmPelsHeight >= 480)
 		{
 			DWORD idx;
 
-			if (devMode.dmBitsPerPel != 8 &&
-				(devMode.dmPelsWidth == 1024 && devMode.dmPelsHeight == 768 ||
-					devMode.dmPelsWidth == 800 && devMode.dmPelsHeight == 600 ||
-					devMode.dmPelsWidth == 640 && devMode.dmPelsHeight == 480))
+			if (devMode.dmBitsPerPel != 8 && (devMode.dmPelsWidth == 1024 && devMode.dmPelsHeight == 768 || devMode.dmPelsWidth == 800 && devMode.dmPelsHeight == 600 || devMode.dmPelsWidth == 640 && devMode.dmPelsHeight == 480))
 			{
 				idx = AddDisplayMode(&devMode);
 				if (idx)
@@ -1289,15 +1278,8 @@ HRESULT DirectDraw::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceD
 		DWORD checksCount = count;
 		while (checksCount--)
 		{
-			if ((check->width < mode->width || check->width == mode->width &&
-				(check->height < mode->height || check->height == mode->height &&
-				(check->bpp < mode->bpp || check->bpp == mode->bpp &&
-					check->frequency < mode->frequency)))
-				&&
-				(check->width > stored->width || check->width == stored->width &&
-				(check->height > stored->height || check->height == stored->height &&
-					(check->bpp > stored->bpp || check->bpp == stored->bpp &&
-						check->frequency > stored->frequency))))
+			if ((check->width < mode->width || check->width == mode->width && (check->height < mode->height || check->height == mode->height && (check->bpp < mode->bpp || check->bpp == mode->bpp && check->frequency < mode->frequency)))
+				&& (check->width > stored->width || check->width == stored->width && (check->height > stored->height || check->height == stored->height && (check->bpp > stored->bpp || check->bpp == stored->bpp && check->frequency > stored->frequency))))
 				stored = check;
 
 			++check;
@@ -1345,11 +1327,11 @@ HRESULT DirectDraw::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP)
 	if (this->indexBuffer)
 		AlignedFree(this->indexBuffer);
 
-	this->indexBuffer = (BYTE*)AlignedAlloc(dwWidth * pitch * (dwBPP >> 3), 16); // pitch * (dwBPP >> 3) - for EU video fix
+	this->indexBuffer = (BYTE*)AlignedAlloc(dwWidth * pitch * (dwBPP >> 3)); // pitch * (dwBPP >> 3) - for EU video fix
 	MemoryZero(this->indexBuffer, dwWidth * pitch);
 
 	if (!this->palette)
-		this->palette = (DWORD*)AlignedAlloc(256 * sizeof(DWORD), 16);
+		this->palette = (DWORD*)AlignedAlloc(256 * sizeof(DWORD));
 
 	MemoryZero(this->palette, 255 * sizeof(DWORD));
 	this->palette[255] = WHITE;
@@ -1406,10 +1388,7 @@ VOID DirectDraw::SetFullscreenMode()
 			GetWindowRect(this->hWnd, &rc);
 			if (rc.right - rc.left != devMode.dmPelsWidth || rc.bottom - rc.top != devMode.dmPelsHeight)
 			{
-				if (!mciVideo.deviceId)
-					SetWindowPos(this->hWnd, NULL, 0, 0, devMode.dmPelsWidth, devMode.dmPelsHeight, NULL);
-				else
-					SetWindowPos(this->hWnd, NULL, 0, -1, devMode.dmPelsWidth, devMode.dmPelsHeight + 1, NULL);
+				SetWindowPos(this->hWnd, NULL, 0, 0, devMode.dmPelsWidth, devMode.dmPelsHeight, NULL);
 				SetForegroundWindow(this->hWnd);
 			}
 		}

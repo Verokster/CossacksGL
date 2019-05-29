@@ -76,17 +76,6 @@ namespace Config
 			} while (--count);
 		}
 
-		HMODULE hLibrary = LoadLibrary("NTDLL.dll");
-		if (hLibrary)
-		{
-			if (GetProcAddress(hLibrary, "wine_get_version"))
-				config.singleWindow = TRUE;
-			FreeLibrary(hLibrary);
-		}
-
-		if (!config.singleWindow)
-			config.singleWindow = Config::Get(CONFIG, "SingleWindow", FALSE);
-
 		if (!config.isExist)
 		{
 			config.windowedMode = TRUE;
@@ -104,8 +93,10 @@ namespace Config
 			config.aspectRatio = TRUE;
 			Config::Set(CONFIG, "AspectRatio", config.aspectRatio);
 
-			config.mouseCapture = TRUE;
 			Config::Set(CONFIG, "MouseCapture", config.mouseCapture);
+
+			config.singleWindow = TRUE;
+			Config::Set(CONFIG, "SingleWindow", config.singleWindow);
 		}
 		else
 		{
@@ -114,7 +105,8 @@ namespace Config
 			config.fpsCounter = (BOOL)Config::Get(CONFIG, "FpsCounter", FALSE);
 			config.filtering = (BOOL)Config::Get(CONFIG, "Filtering", TRUE);
 			config.aspectRatio = (BOOL)Config::Get(CONFIG, "AspectRatio", TRUE);
-			config.mouseCapture = (BOOL)Config::Get(CONFIG, "MouseCapture", TRUE);
+			config.mouseCapture = (BOOL)Config::Get(CONFIG, "MouseCapture", FALSE);
+			config.singleWindow = (BOOL)Config::Get(CONFIG, "SingleWindow", TRUE);
 		}
 	}
 

@@ -24,11 +24,12 @@
 
 #pragma once
 #define WIN32_LEAN_AND_MEAN
+//#define WINVER 0x0400
 
 #include "windows.h"
 #include "Mmsystem.h"
-#include "stdlib.h"
-#include "stdio.h"
+//#include "stdio.h"
+#include "math.h"
 #include "shellscalingapi.h"
 #include "DirectDraw.h"
 
@@ -56,56 +57,49 @@ typedef HRESULT(__stdcall *SETPROCESSDPIAWARENESS)(PROCESS_DPI_AWARENESS);
 
 extern SETPROCESSDPIAWARENESS SetProcessDpiAwarenessC;
 
-typedef VOID*(__cdecl *MALLOC)(size_t);
-typedef VOID(__cdecl *FREE)(VOID*);
-typedef VOID*(__cdecl *ALIGNED_MALLOC)(size_t, size_t);
-typedef VOID(__cdecl *ALIGNED_FREE)(VOID*);
-typedef VOID*(__cdecl *MEMSET)(VOID*, INT, size_t);
-typedef VOID*(__cdecl *MEMCPY)(VOID*, const VOID*, size_t);
-typedef double(__cdecl *CEIL)(double);
-typedef double(__cdecl *FLOOR)(double);
-typedef double(__cdecl *ROUND)(double);
-typedef INT(__cdecl *SPRINTF)(CHAR*, const CHAR*, ...);
-typedef INT(__cdecl *STRCMP)(const CHAR*, const CHAR*);
-typedef INT(__cdecl *STRICMP)(const CHAR*, const CHAR*);
-typedef CHAR*(__cdecl *STRCPY)(CHAR*, const CHAR*);
-typedef CHAR*(__cdecl *STRCAT)(CHAR*, const CHAR*);
-typedef CHAR*(__cdecl *STRSTR)(const CHAR*, const CHAR*);
-typedef CHAR*(__cdecl *STRRCHR)(const CHAR*, INT);
-typedef size_t(__cdecl *WCSTOMBS)(CHAR*, const WCHAR*, size_t);
-typedef FILE*(__cdecl *FOPEN)(const CHAR*, const CHAR*);
-typedef INT(__cdecl *FCLOSE)(FILE*);
-typedef VOID(__cdecl *EXIT)(INT);
+#ifndef _FILE_DEFINED
+#define _FILE_DEFINED
+typedef struct _iobuf {
+	void* _Placeholder;
+} FILE;
+#endif
 
-extern MALLOC MemoryAlloc;
-extern FREE MemoryFree;
-extern ALIGNED_MALLOC AlignedAlloc;
-extern ALIGNED_FREE AlignedFree;
-extern MEMSET MemorySet;
-extern MEMCPY MemoryCopy;
-extern CEIL MathCeil;
-extern FLOOR MathFloor;
-extern ROUND MathRound;
-extern SPRINTF StrPrint;
-extern STRCMP StrCompare;
-extern STRICMP StrCompareInsensitive;
-extern STRCPY StrCopy;
-extern STRCAT StrCat;
-extern STRSTR StrStr;
-extern STRRCHR StrLastChar;
-extern WCSTOMBS StrToAnsi;
-extern FOPEN FileOpen;
-extern FCLOSE FileClose;
-extern EXIT Exit;
+extern "C"
+{
+	__declspec(dllimport) int __cdecl sprintf(char*, const char*, ...);
+	__declspec(dllimport) FILE* __cdecl fopen(const char*, const char*);
+	__declspec(dllimport) int __cdecl fclose(FILE*);
+}
 
-#define MemoryZero(Destination,Length) MemorySet((Destination),0,(Length))
+
+#define MemoryAlloc(size) malloc(size)
+#define MemoryFree(block) free(block)
+#define MemorySet(dst, val, size) memset(dst, val, size)
+#define MemoryZero(dst, size) memset(dst, 0, size)
+#define MemoryCopy(dst, src, size) memcpy(dst, src, size)
+#define MathCeil(x) ceil(x)
+#define MathFloor(x) floor(x)
+#define StrPrint(buf, fmt, ...) sprintf(buf, fmt, __VA_ARGS__)
+#define StrCompare(str1, str2) strcmp(str1, str2)
+#define StrCompareInsensitive(str1, str2) _stricmp(str1, str2)
+#define StrCopy(dst, src) strcpy(dst, src)
+#define StrCat(dst, src) strcat(dst, src)
+#define StrLastChar(str, ch) strrchr(str, ch)
+#define StrStr(str, substr) strstr(str, substr)
+#define StrToAnsi(dst, src, size) wcstombs(dst, src, size)
+#define FileOpen fopen
+#define FileClose fclose
+#define Exit(code) exit(code)
+
+DOUBLE __fastcall MathRound(DOUBLE);
+VOID* __fastcall AlignedAlloc(size_t size);
+VOID __fastcall AlignedFree(VOID* block);
 
 extern HMODULE hDllModule;
 extern HANDLE hActCtx;
 
 extern DirectDraw* ddrawList;
 
-VOID LoadMsvCRT();
 VOID LoadDPlayX();
 VOID LoadKernel32();
 VOID LoadWinMM();

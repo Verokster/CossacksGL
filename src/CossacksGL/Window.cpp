@@ -388,7 +388,7 @@ namespace Window
 
 					MCI_OVLY_RECT_PARMS params;
 					params.dwCallback = (DWORD_PTR)hWnd;
-					Hooks::CalcVideoSize(rc.right - rc.left, rc.bottom - rc.top, &params.rc);
+					Hooks::CalcVideoSize(rc.right, rc.bottom, &params.rc);
 					MciSendCommand(mciList[mciVideo.deviceId - 1], MCI_PUT, MCI_OVLY_RECT | MCI_OVLY_PUT_DESTINATION, (DWORD_PTR)&params);
 				}
 				return NULL;

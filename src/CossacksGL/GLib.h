@@ -101,10 +101,6 @@ typedef char GLchar;
 #define ERROR_INVALID_VERSION_ARB 0x2095
 #define ERROR_INVALID_PROFILE_ARB 0x2096
 
-typedef PROC(__stdcall *WGLGETPROCADDRESS)(LPCSTR name);
-typedef BOOL(__stdcall *WGLMAKECURRENT)(HDC devContext, HGLRC glContext);
-typedef HGLRC(__stdcall *WGLCREATECONTEXT)(HDC devContext);
-typedef BOOL(__stdcall *WGLDELETECONTEXT)(HGLRC glContext);
 typedef HGLRC(__stdcall *WGLCREATECONTEXTATTRIBSARB)(HDC hDC, HGLRC hshareContext, const DWORD *attribList);
 typedef BOOL(__stdcall *WGLCHOOSEPIXELFORMATARB) (HDC hDC, const INT* piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, INT *piFormats, UINT *nNumFormats);
 typedef BOOL(__stdcall *WGLCHOOSEPIXELFORMAT) (HDC hDC, const INT* piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, INT *piFormats, UINT *nNumFormats);
@@ -179,10 +175,6 @@ typedef VOID(__stdcall *GLUNIFORM1I)(GLint location, GLint v0);
 typedef VOID(__stdcall *GLUNIFORM2F)(GLint location, GLfloat v0, GLfloat v1);
 typedef GLuint(__stdcall *GLUNIFORMMATRIX4FV)(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
 
-extern WGLGETPROCADDRESS WGLGetProcAddress;
-extern WGLMAKECURRENT WGLMakeCurrent;
-extern WGLCREATECONTEXT WGLCreateContext;
-extern WGLDELETECONTEXT WGLDeleteContext;
 extern WGLCREATECONTEXTATTRIBSARB WGLCreateContextAttribs;
 extern WGLCHOOSEPIXELFORMAT WGLChoosePixelFormat;
 extern WGLGETEXTENSIONSSTRING WGLGetExtensionsString;
@@ -259,12 +251,10 @@ extern BOOL glCapsBGR;
 
 namespace GL
 {
-	BOOL __fastcall Load();
-	VOID __fastcall Free();
 	VOID __fastcall CreateContextAttribs(HDC hDc, HGLRC* hRc);
 	VOID __fastcall ResetPixelFormatDescription(PIXELFORMATDESCRIPTOR* pfd);
 	VOID __fastcall PreparePixelFormatDescription(PIXELFORMATDESCRIPTOR* pfd);
 	INT __fastcall PreparePixelFormat(PIXELFORMATDESCRIPTOR* pfd);
+	VOID __fastcall ResetPixelFormat();
 	GLuint __fastcall CompileShaderSource(DWORD name, const CHAR* version, GLenum type);
-	VOID __fastcall ResetContext();
 }

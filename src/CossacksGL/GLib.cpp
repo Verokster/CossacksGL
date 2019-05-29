@@ -30,10 +30,6 @@
 #define PREFIX_GL "gl"
 #define PREFIX_WGL "wgl"
 
-WGLGETPROCADDRESS WGLGetProcAddress;
-WGLMAKECURRENT WGLMakeCurrent;
-WGLCREATECONTEXT WGLCreateContext;
-WGLDELETECONTEXT WGLDeleteContext;
 WGLCREATECONTEXTATTRIBSARB WGLCreateContextAttribs;
 WGLCHOOSEPIXELFORMAT WGLChoosePixelFormat;
 WGLGETEXTENSIONSSTRING WGLGetExtensionsString;
@@ -116,28 +112,6 @@ BOOL glCapsBGR;
 
 namespace GL
 {
-	BOOL __fastcall Load()
-	{
-		if (!hGLModule)
-			hGLModule = LoadLibrary("OPENGL32.dll");
-
-		if (!hGLModule)
-			return FALSE;
-
-		WGLGetProcAddress = (WGLGETPROCADDRESS)GetProcAddress(hGLModule, "wglGetProcAddress");
-		WGLMakeCurrent = (WGLMAKECURRENT)GetProcAddress(hGLModule, "wglMakeCurrent");
-		WGLCreateContext = (WGLCREATECONTEXT)GetProcAddress(hGLModule, "wglCreateContext");
-		WGLDeleteContext = (WGLDELETECONTEXT)GetProcAddress(hGLModule, "wglDeleteContext");
-
-		return TRUE;
-	}
-
-	VOID __fastcall Free()
-	{
-		if (hGLModule && FreeLibrary(hGLModule))
-			hGLModule = NULL;
-	}
-
 	VOID __fastcall LoadFunction(CHAR* buffer, const CHAR* prefix, const CHAR* name, PROC* func, const CHAR* sufix = NULL)
 	{
 		if (*func)
@@ -149,12 +123,16 @@ namespace GL
 		if (sufix)
 			StrCat(buffer, sufix);
 
-		if (WGLGetProcAddress)
-			*func = WGLGetProcAddress(buffer);
+		if (wglGetProcAddress)
+			*func = wglGetProcAddress(buffer);
 
 		if ((INT)*func >= -1 && (INT)*func <= 3)
+		{
+			if (!hGLModule)
+				hGLModule = GetModuleHandle("OPENGL32.dll");
 			*func = GetProcAddress(hGLModule, buffer);
-
+		}
+		
 		if (!sufix)
 		{
 			LoadFunction(buffer, prefix, name, func, "EXT");
@@ -174,8 +152,8 @@ namespace GL
 		HGLRC hRc = WGLCreateContextAttribs(hDc, NULL, wglAttributes);
 		if (hRc)
 		{
-			WGLMakeCurrent(hDc, hRc);
-			WGLDeleteContext(*lpHRc);
+			wglMakeCurrent(hDc, hRc);
+			wglDeleteContext(*lpHRc);
 			*lpHRc = hRc;
 
 			return TRUE;
@@ -203,12 +181,12 @@ namespace GL
 				GetContext(hDc, hRc, 1, 4, TRUE);
 		}
 
-		LoadFunction(buffer, PREFIX_WGL, "GetExtensionsString", (PROC*)& WGLGetExtensionsString, "EXT");
+		LoadFunction(buffer, PREFIX_WGL, "GetExtensionsString", (PROC*)&WGLGetExtensionsString, "EXT");
 		if (WGLGetExtensionsString)
 		{
 			CHAR* extensions = (CHAR*)WGLGetExtensionsString();
 			if (StrStr(extensions, "WGL_EXT_swap_control"))
-				LoadFunction(buffer, PREFIX_WGL, "SwapInterval", (PROC*)& WGLSwapInterval, "EXT");
+				LoadFunction(buffer, PREFIX_WGL, "SwapInterval", (PROC*)&WGLSwapInterval, "EXT");
 		}
 
 		LoadFunction(buffer, PREFIX_GL, "GetString", (PROC*)&GLGetString);
@@ -237,7 +215,7 @@ namespace GL
 		LoadFunction(buffer, PREFIX_GL, "ColorTable", (PROC*)&GLColorTable, "EXT");
 		LoadFunction(buffer, PREFIX_GL, "ReadPixels", (PROC*)&GLReadPixels);
 		LoadFunction(buffer, PREFIX_GL, "PixelStorei", (PROC*)&GLPixelStorei);
-		
+
 #ifdef _DEBUG
 		LoadFunction(buffer, PREFIX_GL, "GetError", (PROC*)&GLGetError);
 #endif
@@ -393,8 +371,7 @@ namespace GL
 			NULL,
 			NULL,
 			hDllModule,
-			NULL
-		);
+			NULL);
 
 		if (hWnd)
 		{
@@ -404,10 +381,10 @@ namespace GL
 				res = ::ChoosePixelFormat(hDc, pfd);
 				if (res && ::SetPixelFormat(hDc, res, pfd))
 				{
-					HGLRC hRc = WGLCreateContext(hDc);
+					HGLRC hRc = wglCreateContext(hDc);
 					if (hRc)
 					{
-						if (WGLMakeCurrent(hDc, hRc))
+						if (wglMakeCurrent(hDc, hRc))
 						{
 							CHAR buffer[32];
 							LoadFunction(buffer, PREFIX_WGL, "ChoosePixelFormat", (PROC*)&WGLChoosePixelFormat, "ARB");
@@ -431,10 +408,10 @@ namespace GL
 									res = piFormats[0];
 							}
 
-							WGLMakeCurrent(hDc, NULL);
+							wglMakeCurrent(hDc, NULL);
 						}
 
-						WGLDeleteContext(hRc);
+						wglDeleteContext(hRc);
 					}
 				}
 
@@ -445,6 +422,39 @@ namespace GL
 		}
 
 		return res;
+	}
+
+	VOID __fastcall ResetPixelFormat()
+	{
+		PIXELFORMATDESCRIPTOR pfd;
+		PreparePixelFormatDescription(&pfd);
+
+		HWND hWnd = CreateWindowEx(
+			WS_EX_APPWINDOW,
+			WC_DRAW,
+			NULL,
+			WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
+			0, 0,
+			1, 1,
+			NULL,
+			NULL,
+			hDllModule,
+			NULL);
+
+		if (hWnd)
+		{
+			HDC hDc = GetDC(hWnd);
+			if (hDc)
+			{
+				INT res = ::ChoosePixelFormat(hDc, &pfd);
+				if (res)
+					::SetPixelFormat(hDc, res, &pfd);
+
+				ReleaseDC(hWnd, hDc);
+			}
+
+			DestroyWindow(hWnd);
+		}
 	}
 
 	GLuint __fastcall CompileShaderSource(DWORD name, const CHAR* version, GLenum type)
@@ -496,23 +506,5 @@ namespace GL
 		}
 
 		return shader;
-	}
-
-	DWORD __stdcall ResetThread(LPVOID lpParameter)
-	{
-		PIXELFORMATDESCRIPTOR pfd;
-		GL::PreparePixelFormat(&pfd);
-
-		return NULL;
-	}
-
-	VOID __fastcall ResetContext()
-	{
-		HANDLE hThread = CreateThread(NULL, NULL, ResetThread, NULL, NORMAL_PRIORITY_CLASS, NULL);
-		if (hThread)
-		{
-			WaitForSingleObject(hThread, INFINITE);
-			CloseHandle(hThread);
-		}
 	}
 }

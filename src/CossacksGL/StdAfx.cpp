@@ -39,27 +39,6 @@ DEACTIVATEACTCTX DeactivateActCtxC;
 
 SETPROCESSDPIAWARENESS SetProcessDpiAwarenessC;
 
-MALLOC MemoryAlloc;
-FREE MemoryFree;
-ALIGNED_MALLOC AlignedAlloc;
-ALIGNED_FREE AlignedFree;
-MEMSET MemorySet;
-MEMCPY MemoryCopy;
-CEIL MathCeil;
-FLOOR MathFloor;
-ROUND MathRound;
-SPRINTF StrPrint;
-STRCMP StrCompare;
-STRICMP StrCompareInsensitive;
-STRCPY StrCopy;
-STRCAT StrCat;
-STRSTR StrStr;
-STRRCHR StrLastChar;
-WCSTOMBS StrToAnsi;
-FOPEN FileOpen;
-FCLOSE FileClose;
-EXIT Exit;
-
 DWORD
 	pDirectPlayCreate,
 	pDirectPlayEnumerateA,
@@ -85,60 +64,57 @@ VOID _declspec(naked) __stdcall exDllRegisterServer() { _asm { JMP pDllRegisterS
 VOID _declspec(naked) __stdcall exDirectPlayEnumerate() { _asm { JMP pDirectPlayEnumerate } }
 VOID _declspec(naked) __stdcall exDllUnregisterServer() { _asm { JMP pDllUnregisterServer } }
 
-double __cdecl round(double number)
+DOUBLE __fastcall MathRound(DOUBLE number)
 {
-	double floorVal = MathFloor(number);
+	DOUBLE floorVal = MathFloor(number);
 	return floorVal + 0.5f > number ? floorVal : MathCeil(number);
 }
 
-VOID LoadMsvCRT()
+struct Aligned {
+	Aligned* last;
+	VOID* data;
+	VOID* block;
+} * alignedList;
+
+VOID* __fastcall AlignedAlloc(size_t size)
 {
-	HMODULE hLib = LoadLibrary("MSVCRT.dll");
-	if (hLib)
+	Aligned* entry = (Aligned*)MemoryAlloc(sizeof(Aligned));
+	entry->last = alignedList;
+	alignedList = entry;
+
+	entry->data = MemoryAlloc(size + 16);
+	entry->block = (VOID*)(((DWORD)entry->data + 16) & 0xFFFFFFF0);
+
+	return entry->block;
+}
+
+VOID __fastcall AlignedFree(VOID* block)
+{
+	Aligned* entry = alignedList;
+	if (entry)
 	{
-		StrPrint = (SPRINTF)GetProcAddress(hLib, "sprintf");
-
-		CHAR libName[MAX_PATH];
-		for (DWORD i = 12; i >= 7; --i)
+		if (entry->block == block)
 		{
-			StrPrint(libName, "MSVCR%d0.dll", i);
-			HMODULE hCrtLib = LoadLibrary(libName);
-			if (hCrtLib)
-			{
-				FreeLibrary(hLib);
-				hLib = hCrtLib;
-				StrPrint = (SPRINTF)GetProcAddress(hLib, "sprintf");
-				break;
-			}
+			Aligned* last = entry->last;
+			MemoryFree(entry->data);
+			MemoryFree(entry);
+			alignedList = last;
+			return;
 		}
+		else
+			while (entry->last)
+			{
+				if (entry->last->block == block)
+				{
+					Aligned* last = entry->last->last;
+					MemoryFree(entry->last->data);
+					MemoryFree(entry->last);
+					entry->last = last;
+					return;
+				}
 
-		MemoryAlloc = (MALLOC)GetProcAddress(hLib, "malloc");
-		MemoryFree = (FREE)GetProcAddress(hLib, "free");
-
-		AlignedAlloc = (ALIGNED_MALLOC)GetProcAddress(hLib, "_aligned_malloc");
-		AlignedFree = (ALIGNED_FREE)GetProcAddress(hLib, "_aligned_free");
-
-		MemorySet = (MEMSET)GetProcAddress(hLib, "memset");
-		MemoryCopy = (MEMCPY)GetProcAddress(hLib, "memcpy");
-
-		MathCeil = (CEIL)GetProcAddress(hLib, "ceil");
-		MathFloor = (FLOOR)GetProcAddress(hLib, "floor");
-		MathRound = (ROUND)GetProcAddress(hLib, "round");
-		if (!MathRound)
-			MathRound = round;
-
-		StrCompare = (STRCMP)GetProcAddress(hLib, "strcmp");
-		StrCompareInsensitive = (STRICMP)GetProcAddress(hLib, "_stricmp");
-		StrCopy = (STRCPY)GetProcAddress(hLib, "strcpy");
-		StrCat = (STRCAT)GetProcAddress(hLib, "strcat");
-		StrStr = (STRSTR)GetProcAddress(hLib, "strstr");
-		StrLastChar = (STRRCHR)GetProcAddress(hLib, "strrchr");
-		StrToAnsi = (WCSTOMBS)GetProcAddress(hLib, "wcstombs");
-
-		FileOpen = (FOPEN)GetProcAddress(hLib, "fopen");
-		FileClose = (FCLOSE)GetProcAddress(hLib, "fclose");
-
-		Exit = (EXIT)GetProcAddress(hLib, "exit");
+				entry = entry->last;
+			}
 	}
 }
 

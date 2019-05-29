@@ -36,7 +36,6 @@ BOOL __stdcall DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 	{
 		hDllModule = hModule;
 
-		LoadMsvCRT();
 		LoadDPlayX();
 		LoadWinMM();
 		LoadKernel32();
@@ -87,7 +86,6 @@ BOOL __stdcall DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		Window::SetCaptureKeys(FALSE);
 
 		ChangeDisplaySettings(NULL, NULL);
-		GL::Free();
 
 		if (hActCtx && hActCtx != INVALID_HANDLE_VALUE)
 			ReleaseActCtxC(hActCtx);

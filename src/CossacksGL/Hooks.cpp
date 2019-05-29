@@ -223,7 +223,7 @@ namespace Hooks
 	MCISENDCOMMANDA MciSendCommandOld;
 	MCIGETERRORSTRINGA MciGetErrorStringOld;
 
-	VOID __fastcall CalcVideoSize(DWORD width, DWORD height, RECT* rc)
+	VOID __fastcall CalcVideoSize(LONG width, LONG height, RECT* rc)
 	{
 		rc->left = 0;
 		rc->top = 0;
@@ -343,9 +343,9 @@ namespace Hooks
 			if (!StrCompare(params->lpstrDeviceType, "AVIVideo"))
 			{
 				HWND hWnd = (HWND)params->dwCallback;
-
-				if (!config.windowedMode)
-					SetWindowPos(hWnd, NULL, 0, -1, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) + 1, SWP_NOZORDER | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOREPOSITION | SWP_NOOWNERZORDER | SWP_NOACTIVATE | SWP_NOSENDCHANGING);
+				DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
+				if (ddraw)
+					ddraw->RenderStop();
 
 				mciVideo.error = mcierr = MciSendCommand(mciId, uMsg, dwParam1, dwParam2);
 				if (mcierr)
@@ -355,10 +355,8 @@ namespace Hooks
 				mciVideo.deviceId = mciIndex;
 
 				SetClassLongPtr(hWnd, GCLP_HBRBACKGROUND, (LONG)GetStockObject(BLACK_BRUSH));
-
-				DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
-				if (ddraw && ddraw->hDraw)
-					SetWindowLong(ddraw->hDraw, GWL_STYLE, WS_POPUP);
+				if (!config.windowedMode)
+					SetWindowPos(hWnd, NULL, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) + 1, SWP_NOZORDER | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOREPOSITION | SWP_NOOWNERZORDER | SWP_NOACTIVATE | SWP_NOSENDCHANGING);
 			}
 			else
 			{
@@ -406,7 +404,7 @@ namespace Hooks
 
 					RECT rc;
 					if (GetClientRect((HWND)params->dwCallback, &rc))
-						CalcVideoSize(DWORD(rc.right - rc.left), DWORD(rc.bottom - rc.top), &params->rc);
+						CalcVideoSize(rc.right, rc.bottom, &params->rc);
 				}
 
 				mciVideo.error = mcierr = MciSendCommand(mciList[mciId - 1], uMsg, dwParam1, dwParam2);

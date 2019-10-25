@@ -168,12 +168,11 @@ typedef VOID(__stdcall *GLUSEPROGRAM)(GLuint program);
 typedef VOID(__stdcall *GLGETSHADERIV)(GLuint shader, GLenum pname, GLint* params);
 typedef VOID(__stdcall *GLGETSHADERINFOLOG)(GLuint shader, GLsizei maxLength, GLsizei* length, GLchar* infoLog);
 
-typedef GLuint(__stdcall *GLGETATTRIBLOCATION)(GLuint program, const GLchar* name);
+typedef VOID(__stdcall* GLBINDATTRIBLOCATION)(GLuint program, GLuint index, const GLchar* name);
 typedef GLuint(__stdcall *GLGETUNIFORMLOCATION)(GLuint program, const GLchar* name);
 
 typedef VOID(__stdcall *GLUNIFORM1I)(GLint location, GLint v0);
 typedef VOID(__stdcall *GLUNIFORM2F)(GLint location, GLfloat v0, GLfloat v1);
-typedef GLuint(__stdcall *GLUNIFORMMATRIX4FV)(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
 
 extern WGLCREATECONTEXTATTRIBSARB WGLCreateContextAttribs;
 extern WGLCHOOSEPIXELFORMAT WGLChoosePixelFormat;
@@ -237,12 +236,11 @@ extern GLUSEPROGRAM GLUseProgram;
 extern GLGETSHADERIV GLGetShaderiv;
 extern GLGETSHADERINFOLOG GLGetShaderInfoLog;
 
-extern GLGETATTRIBLOCATION GLGetAttribLocation;
+extern GLBINDATTRIBLOCATION GLBindAttribLocation;
 extern GLGETUNIFORMLOCATION GLGetUniformLocation;
 
 extern GLUNIFORM1I GLUniform1i;
 extern GLUNIFORM2F GLUniform2f;
-extern GLUNIFORMMATRIX4FV GLUniformMatrix4fv;
 
 extern DWORD glVersion;
 extern DWORD glCapsClampToEdge;

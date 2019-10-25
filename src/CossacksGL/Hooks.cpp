@@ -24,6 +24,7 @@
 
 #include "stdafx.h"
 #include "mmsystem.h"
+#include "winnt.h"
 #include "Resource.h"
 #include "Hooks.h"
 #include "Main.h"
@@ -33,36 +34,47 @@
 MciVideo mciVideo;
 MCIDEVICEID mciList[16];
 DWORD mciIndex;
+INT baseOffset;
 
 namespace Hooks
 {
-	BOOL __fastcall PatchRedirect(DWORD addr, VOID* hook, BYTE instruction)
+	BOOL __fastcall PatchRedirect(DWORD addr, VOID* hook, BYTE instruction, DWORD nop)
 	{
-		DWORD address = addr;
+		DWORD address = addr + baseOffset;
+
+		DWORD size = instruction == 0xEB ? 2 : 5;
 
 		DWORD old_prot;
-		if (VirtualProtect((VOID*)address, 5, PAGE_EXECUTE_READWRITE, &old_prot))
+		if (VirtualProtect((VOID*)address, size + nop, PAGE_EXECUTE_READWRITE, &old_prot))
 		{
 			BYTE* jump = (BYTE*)address;
 			*jump = instruction;
 			++jump;
-			*(DWORD*)jump = (DWORD)hook - (DWORD)address - 5;
+			*(DWORD*)jump = (DWORD)hook - (DWORD)address - size;
 
-			VirtualProtect((VOID*)address, 5, old_prot, &old_prot);
+			if (nop)
+				MemorySet((VOID*)(address + size), 0x90, nop);
+
+			VirtualProtect((VOID*)address, size + nop, old_prot, &old_prot);
 
 			return TRUE;
 		}
 		return FALSE;
 	}
 
-	BOOL __fastcall PatchHook(DWORD addr, VOID* hook)
+	BOOL __fastcall PatchHook(DWORD addr, VOID* hook, DWORD nop = 0)
 	{
-		return PatchRedirect(addr, hook, 0xE9);
+		return PatchRedirect(addr, hook, 0xE9, nop);
+	}
+
+	BOOL __fastcall PatchCall(DWORD addr, VOID* hook, DWORD nop = 0)
+	{
+		return PatchRedirect(addr, hook, 0xE8, nop);
 	}
 
 	BOOL __fastcall PatchBlock(DWORD addr, VOID* block, DWORD size)
 	{
-		DWORD address = addr;
+		DWORD address = addr + baseOffset;
 
 		DWORD old_prot;
 		if (VirtualProtect((VOID*)address, size, PAGE_EXECUTE_READWRITE, &old_prot))
@@ -92,7 +104,7 @@ namespace Hooks
 
 	BOOL __fastcall ReadBlock(DWORD addr, VOID* block, DWORD size)
 	{
-		DWORD address = addr;
+		DWORD address = addr + baseOffset;
 
 		DWORD old_prot;
 		if (VirtualProtect((VOID*)address, size, PAGE_READONLY, &old_prot))
@@ -174,7 +186,7 @@ namespace Hooks
 
 					if (!file->address)
 					{
-						file->address = MapViewOfFile(file->hMap, FILE_MAP_READ, 0, 0, 0);;
+						file->address = MapViewOfFile(file->hMap, FILE_MAP_READ, 0, 0, 0);
 						if (!file->address)
 							return res;
 					}
@@ -218,6 +230,58 @@ namespace Hooks
 		return res;
 	}
 
+	DWORD __fastcall PatchEntryPoint(const CHAR* library, VOID* entryPoint)
+	{
+		DWORD base = (DWORD)GetModuleHandle(library);
+		if (!base)
+			return FALSE;
+
+		PIMAGE_NT_HEADERS headNT = (PIMAGE_NT_HEADERS)((BYTE*)base + ((PIMAGE_DOS_HEADER)base)->e_lfanew);
+		return PatchHook(base + headNT->OptionalHeader.AddressOfEntryPoint, entryPoint);
+	}
+
+	DWORD __fastcall FindCodeBlockAddress(BYTE* block, DWORD size)
+	{
+		if (size)
+		{
+			HMODULE hModule = GetModuleHandle(NULL);
+			PIMAGE_NT_HEADERS headNT = (PIMAGE_NT_HEADERS)((BYTE*)hModule + ((PIMAGE_DOS_HEADER)hModule)->e_lfanew);
+
+			IMAGE_SECTION_HEADER* section = IMAGE_FIRST_SECTION(headNT);
+			for (DWORD idx = 0; idx < headNT->FileHeader.NumberOfSections; ++idx, ++section)
+			{
+				if (section->VirtualAddress == headNT->OptionalHeader.BaseOfCode)
+				{
+					if (section->Misc.VirtualSize)
+					{
+						BYTE* entry = (BYTE*)(headNT->OptionalHeader.ImageBase + section->VirtualAddress);
+						DWORD total = section->Misc.VirtualSize;
+						do
+						{
+							DWORD count = size;
+
+							BYTE* ptr1 = entry;
+							BYTE* ptr2 = block;
+
+							do
+								if (*ptr1++ != *ptr2++)
+									break;
+							while (--count);
+
+							if (!count)
+								return (DWORD)entry;
+
+							++entry;
+						} while (--total);
+					}
+					return NULL;
+				}
+			}
+		}
+
+		return NULL;
+	}
+
 	// =====================================================================================================
 
 	MCISENDCOMMANDA MciSendCommandOld;
@@ -252,7 +316,7 @@ namespace Hooks
 		}
 	}
 
-	ATOM __stdcall RegisterClassHook(WNDCLASSA *lpWndClass)
+	ATOM __stdcall RegisterClassHook(WNDCLASSA* lpWndClass)
 	{
 		lpWndClass->hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
 		lpWndClass->hIcon = config.icon;
@@ -437,7 +501,7 @@ namespace Hooks
 			return MciGetErrorStringOld(mcierr, pszText, cchText);
 	}
 
-	BOOL __stdcall ClipCursorHook(const RECT *lpRect) { return TRUE; }
+	BOOL __stdcall ClipCursorHook(const RECT* lpRect) { return TRUE; }
 
 	INT __stdcall ShowCursorHook(BOOL bShow) { return bShow ? 1 : -1; }
 
@@ -494,10 +558,64 @@ namespace Hooks
 			return GetProcAddress(hModule, lpProcName);
 	}
 
+	BOOL __stdcall FakeEntryPoint(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved) { return TRUE; }
+
+	DOUBLE flush;
+#define SYNC_STEP (1000.0 / 85.0)
+	VOID __fastcall FlipPage()
+	{
+		LONGLONG qp;
+		QueryPerformanceFrequency((LARGE_INTEGER*)&qp);
+		DOUBLE time = (DOUBLE)qp * 0.001;
+		QueryPerformanceCounter((LARGE_INTEGER*)&qp);
+		time = (DOUBLE)qp / time;
+
+		INT sleep = INT(flush - time);
+		Sleep(sleep > 0 ? *(DWORD*)&sleep : 0);
+
+		QueryPerformanceFrequency((LARGE_INTEGER*)&qp);
+		time = (DOUBLE)qp * 0.001;
+		QueryPerformanceCounter((LARGE_INTEGER*)&qp);
+		time = (DOUBLE)qp / time;
+
+		if (flush > time)
+			flush += SYNC_STEP;
+		else
+			flush = SYNC_STEP * (DWORD(time / SYNC_STEP) + 1);
+	}
+
+	VOID __declspec(naked) FlipPageHook()
+	{
+		__asm {
+			lbl_start:
+				MOV ECX,DWORD PTR SS:[EBP-0x34]
+				REP MOVSD
+				ADD ESI, [EBP-0x30]
+				ADD EDI, [EBP-0x2C]
+				DEC EAX
+
+			JNZ lbl_start
+			JMP FlipPage
+		}
+	}
 
 	VOID Load()
 	{
-		MappedFile file = { GetModuleHandle(NULL), NULL, NULL, NULL };
+		HMODULE hModule = GetModuleHandle(NULL);
+		PIMAGE_NT_HEADERS headNT = (PIMAGE_NT_HEADERS)((BYTE*)hModule + ((PIMAGE_DOS_HEADER)hModule)->e_lfanew);
+		baseOffset = (INT)hModule - (INT)headNT->OptionalHeader.ImageBase;
+
+		{
+			CHAR path[MAX_PATH];
+			GetModuleFileName(hModule, path, MAX_PATH - 1);
+			CHAR* p = StrLastChar(path, '\\');
+			StrCopy(p, "\\DDRAW.dll");
+			PatchEntryPoint(path, FakeEntryPoint);
+			StrCopy(p, "\\MDRAW.dll");
+			PatchEntryPoint(path, FakeEntryPoint);
+		}
+
+		MappedFile file = { hModule, NULL, NULL, NULL };
 		{
 			PatchFunction(&file, "DirectDrawCreate", Main::DirectDrawCreate);
 
@@ -517,6 +635,7 @@ namespace Hooks
 			PatchFunction(&file, "ClientToScreen", ClientToScreenHook);
 
 			PatchFunction(&file, "PeekMessageA", PeekMessageHook);
+			PatchFunction(&file, "GetTickCount", timeGetTime);
 
 			MciSendCommandOld = (MCISENDCOMMANDA)PatchFunction(&file, "mciSendCommandA", mciSendCommandHook);
 			MciGetErrorStringOld = (MCIGETERRORSTRINGA)PatchFunction(&file, "mciGetErrorStringA", mciGetErrorStringHook);
@@ -530,6 +649,12 @@ namespace Hooks
 
 		if (file.hFile)
 			CloseHandle(file.hFile);
+
+		// Flip Page
+		const BYTE flipBlock[] = { 0x8B, 0x4D, 0xCC, 0xF3, 0xA5, 0x03, 0x75, 0xD0, 0x03, 0x7D, 0xD4, 0x48 };
+		DWORD address = FindCodeBlockAddress((BYTE*)flipBlock, sizeof(flipBlock));
+		if (address)
+			PatchCall(address - baseOffset, FlipPageHook, sizeof(flipBlock) + 2 - 5);
 
 		// ============================
 

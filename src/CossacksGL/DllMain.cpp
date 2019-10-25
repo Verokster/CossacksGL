@@ -85,8 +85,6 @@ BOOL __stdcall DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		Window::SetCaptureMouse(FALSE);
 		Window::SetCaptureKeys(FALSE);
 
-		ChangeDisplaySettings(NULL, NULL);
-
 		if (hActCtx && hActCtx != INVALID_HANDLE_VALUE)
 			ReleaseActCtxC(hActCtx);
 

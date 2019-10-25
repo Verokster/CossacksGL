@@ -44,7 +44,7 @@ IDR_MENU MENU
 BEGIN
 	POPUP "&Window"
 	BEGIN
-		MENUITEM "&Full Screen\aAlt+W",		IDM_WINDOW_FULLSCREEN
+		MENUITEM "&Full Screen\aAlt+W",			IDM_WINDOW_FULLSCREEN
 		MENUITEM "Enable VSync",				IDM_WINDOW_VSYNC
 		MENUITEM "FPS &Counter\aAlt+F",			IDM_WINDOW_FPSCOUNTER
 		MENUITEM SEPARATOR
@@ -59,7 +59,7 @@ BEGIN
 	END
 	POPUP "&Help"
 	BEGIN
-		MENUITEM "&About...",				IDM_HELP_ABOUT
+		MENUITEM "&About...",					IDM_HELP_ABOUT
 	END
 END
 
@@ -99,7 +99,6 @@ END
 
 IDR_VERTEX_SIMPLE				RCDATA				".\\shaders\\simple.vgl"
 IDR_FRAGMENT_SIMPLE				RCDATA				".\\shaders\\simple.fgl"
-//IDR_VERTEX_NEAREST			RCDATA				".\\shaders\\nearest.vgl"
 IDR_FRAGMENT_NEAREST			RCDATA				".\\shaders\\nearest.fgl"
 IDR_VERTEX_LINEAR				RCDATA				".\\shaders\\linear.vgl"
 IDR_FRAGMENT_LINEAR				RCDATA				".\\shaders\\linear.fgl"
@@ -110,8 +109,8 @@ IDR_FRAGMENT_LINEAR				RCDATA				".\\shaders\\linear.fgl"
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2019,5,29,244
- PRODUCTVERSION 2,1,5,0
+ FILEVERSION 2019,10,25,270
+ PRODUCTVERSION 2,1,7,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS VS_FF_DEBUG
@@ -127,10 +126,10 @@ BEGIN
 		BLOCK "040904b0"
 		BEGIN
 			VALUE "FileDescription", "Cossacks OpenGL wrapper"
-			VALUE "FileVersion", "2019.05.29.244"
+			VALUE "FileVersion", "2019.10.25.270"
 			VALUE "LegalCopyright", "© 2019 Verok (verokster@gmail.com)"
 			VALUE "OriginalFilename", "dplayx.dll"
-			VALUE "ProductVersion", "2.1.5"
+			VALUE "ProductVersion", "2.1.7"
 			VALUE "ProductName", "CossacksGL"
 		END
 	END

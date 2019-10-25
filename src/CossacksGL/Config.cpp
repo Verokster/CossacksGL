@@ -55,8 +55,12 @@ namespace Config
 
 		config.singleThread = TRUE;
 		DWORD processMask, systemMask;
-		if (GetProcessAffinityMask(GetCurrentProcess(), &processMask, &systemMask))
+		HANDLE process = GetCurrentProcess();
+		if (GetProcessAffinityMask(process, &processMask, &systemMask))
 		{
+			if (processMask != systemMask && SetProcessAffinityMask(process, systemMask))
+				GetProcessAffinityMask(process, &processMask, &systemMask);
+
 			BOOL isSingle = FALSE;
 			DWORD count = sizeof(DWORD) << 3;
 			do
@@ -94,9 +98,6 @@ namespace Config
 			Config::Set(CONFIG, "AspectRatio", config.aspectRatio);
 
 			Config::Set(CONFIG, "MouseCapture", config.mouseCapture);
-
-			config.singleWindow = TRUE;
-			Config::Set(CONFIG, "SingleWindow", config.singleWindow);
 		}
 		else
 		{
@@ -106,7 +107,14 @@ namespace Config
 			config.filtering = (BOOL)Config::Get(CONFIG, "Filtering", TRUE);
 			config.aspectRatio = (BOOL)Config::Get(CONFIG, "AspectRatio", TRUE);
 			config.mouseCapture = (BOOL)Config::Get(CONFIG, "MouseCapture", FALSE);
-			config.singleWindow = (BOOL)Config::Get(CONFIG, "SingleWindow", TRUE);
+		}
+
+		HMODULE hLibrary = LoadLibrary("NTDLL.dll");
+		if (hLibrary)
+		{
+			if (GetProcAddress(hLibrary, "wine_get_version"))
+				config.singleWindow = TRUE;
+			FreeLibrary(hLibrary);
 		}
 	}
 

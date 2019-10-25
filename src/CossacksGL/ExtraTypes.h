@@ -79,7 +79,6 @@ struct ShaderProgram
 	const CHAR* version;
 	DWORD vertexName;
 	DWORD fragmentName;
-	GLfloat* mvp;
 };
 
 struct ConfigItems

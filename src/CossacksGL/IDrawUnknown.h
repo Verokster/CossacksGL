@@ -22,13 +22,24 @@
 	SOFTWARE.
 */
 
-#include "stdafx.h"
-#include "DirectDrawInterface.h"
+#pragma once
 
-HRESULT DirectDrawInterface::QueryInterface(REFIID, LPVOID*) { return DD_OK; }
-ULONG DirectDrawInterface::AddRef() { return 0; }
-ULONG DirectDrawInterface::Release()
-{
-	delete this;
-	return 0;
-}
+#include "ddraw.h"
+
+class IDrawUnknown {
+protected:
+	ULONG refCount;
+
+public:
+	IDrawUnknown** list;
+	IDrawUnknown* last;
+
+	VOID* operator new(size_t);
+	VOID operator delete(VOID*);
+
+	IDrawUnknown(IDrawUnknown** list);
+
+	virtual HRESULT __stdcall QueryInterface(REFIID, LPVOID*);
+	virtual ULONG __stdcall AddRef();
+	virtual ULONG __stdcall Release();
+};

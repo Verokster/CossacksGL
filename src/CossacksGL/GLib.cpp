@@ -96,12 +96,11 @@ GLUSEPROGRAM GLUseProgram;
 GLGETSHADERIV GLGetShaderiv;
 GLGETSHADERINFOLOG GLGetShaderInfoLog;
 
-GLGETATTRIBLOCATION GLGetAttribLocation;
+GLBINDATTRIBLOCATION GLBindAttribLocation;
 GLGETUNIFORMLOCATION GLGetUniformLocation;
 
 GLUNIFORM1I GLUniform1i;
 GLUNIFORM2F GLUniform2f;
-GLUNIFORMMATRIX4FV GLUniformMatrix4fv;
 
 HMODULE hGLModule;
 
@@ -114,30 +113,25 @@ namespace GL
 {
 	VOID __fastcall LoadFunction(CHAR* buffer, const CHAR* prefix, const CHAR* name, PROC* func, const CHAR* sufix = NULL)
 	{
-		if (*func)
-			return;
-
 		StrCopy(buffer, prefix);
 		StrCat(buffer, name);
 
 		if (sufix)
 			StrCat(buffer, sufix);
 
-		if (wglGetProcAddress)
-			*func = wglGetProcAddress(buffer);
-
+		*func = wglGetProcAddress(buffer);
 		if ((INT)*func >= -1 && (INT)*func <= 3)
 		{
 			if (!hGLModule)
 				hGLModule = GetModuleHandle("OPENGL32.dll");
 			*func = GetProcAddress(hGLModule, buffer);
-		}
-		
-		if (!sufix)
-		{
-			LoadFunction(buffer, prefix, name, func, "EXT");
-			if (!*func)
-				LoadFunction(buffer, prefix, name, func, "ARB");
+
+			if (!*func && !sufix)
+			{
+				LoadFunction(buffer, prefix, name, func, "EXT");
+				if (!*func)
+					LoadFunction(buffer, prefix, name, func, "ARB");
+			}
 		}
 	}
 
@@ -250,12 +244,11 @@ namespace GL
 		LoadFunction(buffer, PREFIX_GL, "GetShaderiv", (PROC*)&GLGetShaderiv);
 		LoadFunction(buffer, PREFIX_GL, "GetShaderInfoLog", (PROC*)&GLGetShaderInfoLog);
 
-		LoadFunction(buffer, PREFIX_GL, "GetAttribLocation", (PROC*)&GLGetAttribLocation);
+		LoadFunction(buffer, PREFIX_GL, "BindAttribLocation", (PROC*)&GLBindAttribLocation);
 		LoadFunction(buffer, PREFIX_GL, "GetUniformLocation", (PROC*)&GLGetUniformLocation);
 
 		LoadFunction(buffer, PREFIX_GL, "Uniform1i", (PROC*)&GLUniform1i);
 		LoadFunction(buffer, PREFIX_GL, "Uniform2f", (PROC*)&GLUniform2f);
-		LoadFunction(buffer, PREFIX_GL, "UniformMatrix4fv", (PROC*)&GLUniformMatrix4fv);
 
 		glVersion = NULL;
 		glCapsClampToEdge = GL_CLAMP;
@@ -390,9 +383,6 @@ namespace GL
 							LoadFunction(buffer, PREFIX_WGL, "ChoosePixelFormat", (PROC*)&WGLChoosePixelFormat, "ARB");
 							if (WGLChoosePixelFormat)
 							{
-								INT piFormats[128];
-								UINT nNumFormats = 0;
-
 								INT glAttributes[] = {
 									WGL_DRAW_TO_WINDOW_ARB, (pfd->dwFlags & PFD_DRAW_TO_WINDOW) ? GL_TRUE : GL_FALSE,
 									WGL_SUPPORT_OPENGL_ARB, (pfd->dwFlags & PFD_SUPPORT_OPENGL) ? GL_TRUE : GL_FALSE,
@@ -404,8 +394,10 @@ namespace GL
 									0
 								};
 
-								if (WGLChoosePixelFormat(hDc, glAttributes, NULL, sizeof(piFormats) / sizeof(INT), piFormats, &nNumFormats) && nNumFormats)
-									res = piFormats[0];
+								INT piFormat;
+								UINT nNumFormats;
+								if (WGLChoosePixelFormat(hDc, glAttributes, NULL, 1, &piFormat, &nNumFormats) && nNumFormats)
+									res = piFormat;
 							}
 
 							wglMakeCurrent(hDc, NULL);
@@ -426,9 +418,6 @@ namespace GL
 
 	VOID __fastcall ResetPixelFormat()
 	{
-		PIXELFORMATDESCRIPTOR pfd;
-		PreparePixelFormatDescription(&pfd);
-
 		HWND hWnd = CreateWindowEx(
 			WS_EX_APPWINDOW,
 			WC_DRAW,
@@ -446,6 +435,9 @@ namespace GL
 			HDC hDc = GetDC(hWnd);
 			if (hDc)
 			{
+				PIXELFORMATDESCRIPTOR pfd;
+				PreparePixelFormatDescription(&pfd);
+
 				INT res = ::ChoosePixelFormat(hDc, &pfd);
 				if (res)
 					::SetPixelFormat(hDc, res, &pfd);

@@ -23,26 +23,17 @@
 */
 
 #pragma once
-#include "ddraw.h"
-#include "Allocation.h"
+#include "IDrawPalette.h"
 
 class DirectDraw;
 
-class DirectDrawPalette : IDirectDrawPalette, public Allocation
-{
+class DirectDrawPalette : public IDrawPalette {
 public:
 	DirectDraw* ddraw;
-	DirectDrawPalette* previous;
 
-	DirectDrawPalette(DirectDraw*, DirectDrawPalette*);
+	DirectDrawPalette(IDrawUnknown**, DirectDraw*);
 
 	// Inherited via IDirectDrawPalette
-	HRESULT __stdcall QueryInterface(REFIID, LPVOID*);
-	ULONG __stdcall AddRef();
-	ULONG __stdcall Release();
-	HRESULT __stdcall GetCaps(LPDWORD);
-	HRESULT __stdcall GetEntries(DWORD, DWORD, DWORD, LPPALETTEENTRY);
-	HRESULT __stdcall Initialize(LPDIRECTDRAW, DWORD, LPPALETTEENTRY);
-	HRESULT __stdcall SetEntries(DWORD, DWORD, DWORD, LPPALETTEENTRY);
+	HRESULT __stdcall SetEntries(DWORD, DWORD, DWORD, LPPALETTEENTRY) override;
 };
 

@@ -26,44 +26,38 @@
 #include "GLib.h"
 #include "DirectDrawSurface.h"
 #include "DirectDraw.h"
-#include "DirectDrawInterface.h"
 
-#pragma region Not Implemented
-ULONG DirectDrawSurface::AddRef() { return 0; }
-HRESULT DirectDrawSurface::AddAttachedSurface(LPDIRECTDRAWSURFACE) { return DD_OK; }
-HRESULT DirectDrawSurface::AddOverlayDirtyRect(LPRECT) { return DD_OK; }
-HRESULT DirectDrawSurface::Blt(LPRECT, LPDIRECTDRAWSURFACE, LPRECT, DWORD, LPDDBLTFX) { return DD_OK; }
-HRESULT DirectDrawSurface::BltBatch(LPDDBLTBATCH, DWORD, DWORD) { return DD_OK; }
-HRESULT DirectDrawSurface::BltFast(DWORD, DWORD, LPDIRECTDRAWSURFACE, LPRECT, DWORD) { return DD_OK; }
-HRESULT DirectDrawSurface::DeleteAttachedSurface(DWORD, LPDIRECTDRAWSURFACE) { return DD_OK; }
-HRESULT DirectDrawSurface::EnumAttachedSurfaces(LPVOID, LPDDENUMSURFACESCALLBACK) { return DD_OK; }
-HRESULT DirectDrawSurface::EnumOverlayZOrders(DWORD, LPVOID, LPDDENUMSURFACESCALLBACK) { return DD_OK; }
-HRESULT DirectDrawSurface::Flip(LPDIRECTDRAWSURFACE, DWORD) { return DD_OK; }
-HRESULT DirectDrawSurface::GetAttachedSurface(LPDDSCAPS, LPDIRECTDRAWSURFACE*) { return DD_OK; }
-HRESULT DirectDrawSurface::GetBltStatus(DWORD) { return DD_OK; }
-HRESULT DirectDrawSurface::GetCaps(LPDDSCAPS) { return DD_OK; }
-HRESULT DirectDrawSurface::GetClipper(LPDIRECTDRAWCLIPPER*) { return DD_OK; }
-HRESULT DirectDrawSurface::GetColorKey(DWORD, LPDDCOLORKEY) { return DD_OK; }
-HRESULT DirectDrawSurface::GetFlipStatus(DWORD) { return DD_OK; }
-HRESULT DirectDrawSurface::GetOverlayPosition(LPLONG, LPLONG) { return DD_OK; }
-HRESULT DirectDrawSurface::GetPalette(LPDIRECTDRAWPALETTE*) { return DD_OK; }
-HRESULT DirectDrawSurface::GetSurfaceDesc(LPDDSURFACEDESC) { return DD_OK; }
-HRESULT DirectDrawSurface::Initialize(LPDIRECTDRAW, LPDDSURFACEDESC) { return DD_OK; }
-HRESULT DirectDrawSurface::IsLost() { return DD_OK; }
-HRESULT DirectDrawSurface::ReleaseDC(HDC) { return DD_OK; }
-HRESULT DirectDrawSurface::Restore() { return DD_OK; }
-HRESULT DirectDrawSurface::SetClipper(LPDIRECTDRAWCLIPPER) { return DD_OK; }
-HRESULT DirectDrawSurface::SetColorKey(DWORD, LPDDCOLORKEY) { return DD_OK; }
-HRESULT DirectDrawSurface::SetOverlayPosition(LONG, LONG) { return DD_OK; }
-HRESULT DirectDrawSurface::Unlock(LPVOID) { return DD_OK; }
-HRESULT DirectDrawSurface::UpdateOverlay(LPRECT, LPDIRECTDRAWSURFACE, LPRECT, DWORD, LPDDOVERLAYFX) { return DD_OK; }
-HRESULT DirectDrawSurface::UpdateOverlayDisplay(DWORD) { return DD_OK; }
-HRESULT DirectDrawSurface::UpdateOverlayZOrder(DWORD, LPDIRECTDRAWSURFACE) { return DD_OK; }
-#pragma endregion
+DirectDrawSurface::DirectDrawSurface(IDrawUnknown** list, DirectDraw* lpDD)
+	: IDrawSurface(list)
+{
+	this->ddraw = lpDD;
+	this->attachedPalette = NULL;
+}
+
+DirectDrawSurface::~DirectDrawSurface()
+{
+	if (this->ddraw->attachedSurface == this)
+	{
+		this->ddraw->RenderStop();
+		this->ddraw->attachedSurface = NULL;
+	}
+
+	if (this->attachedPalette)
+		this->attachedPalette->Release();
+}
+
+ULONG DirectDrawSurface::Release()
+{
+	if (--this->refCount)
+		return this->refCount;
+
+	delete this;
+	return 0;
+}
 
 HRESULT DirectDrawSurface::QueryInterface(REFIID riid, LPVOID* ppvObj)
 {
-	*ppvObj = new DirectDrawInterface();
+	*ppvObj = new IDrawUnknown(NULL);
 	return DD_OK;
 }
 
@@ -81,14 +75,6 @@ HRESULT DirectDrawSurface::GetPixelFormat(LPDDPIXELFORMAT lpDDPixelFormat)
 	return DD_OK;
 }
 
-ULONG DirectDrawSurface::Release()
-{
-	this->ddraw->ReleaseMode();
-
-	delete this;
-	return 0;
-}
-
 HRESULT DirectDrawSurface::GetDC(HDC* hDc)
 {
 	*hDc = this->ddraw->hDc;
@@ -97,29 +83,31 @@ HRESULT DirectDrawSurface::GetDC(HDC* hDc)
 
 HRESULT DirectDrawSurface::Lock(LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent)
 {
-	DisplayMode* dwMode = this->ddraw->dwMode;
-	lpDDSurfaceDesc->dwWidth = dwMode->width;
-	lpDDSurfaceDesc->dwHeight = dwMode->height;
-
+	lpDDSurfaceDesc->dwWidth = this->ddraw->dwMode->width;
+	lpDDSurfaceDesc->dwHeight = this->ddraw->dwMode->height;
 	lpDDSurfaceDesc->lPitch = this->ddraw->pitch;
 	lpDDSurfaceDesc->lpSurface = this->ddraw->indexBuffer;
 
 	return DD_OK;
 }
 
-HRESULT DirectDrawSurface::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
+HRESULT DirectDrawSurface::SetPalette(IDrawPalette* lpDDPalette)
 {
-	this->palEntry = (DirectDrawPalette*)lpDDPalette;
+	DirectDrawPalette* old = this->attachedPalette;
+	this->attachedPalette = (DirectDrawPalette*)lpDDPalette;
+
+	if (this->attachedPalette)
+	{
+		if (old != this->attachedPalette)
+		{
+			if (old)
+				old->Release();
+
+			this->attachedPalette->AddRef();
+		}
+	}
+	else if (old)
+		old->Release();
+
 	return DD_OK;
-}
-
-DirectDrawSurface::DirectDrawSurface(DirectDraw* lpDD)
-{
-	this->ddraw = lpDD;
-	this->palEntry = NULL;
-}
-
-DirectDrawSurface::~DirectDrawSurface()
-{
-	delete this->palEntry;
 }

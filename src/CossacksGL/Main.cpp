@@ -30,16 +30,16 @@
 
 namespace Main
 {
-	HRESULT __stdcall DirectDrawCreate(GUID* lpGUID, LPDIRECTDRAW* lplpDD, IUnknown* pUnkOuter)
+	HRESULT __stdcall DirectDrawCreate(GUID* lpGUID, DirectDraw** lplpDD, IUnknown* pUnkOuter)
 	{
-		ddrawList = new DirectDraw(ddrawList);
-		*(DirectDraw**)lplpDD = ddrawList;
+		*lplpDD = ddrawList = new DirectDraw((IDrawUnknown**)&ddrawList);
 		return DD_OK;
 	}
 
 	HRESULT __stdcall DirectDrawCreateEx(GUID* lpGUID, LPVOID* lplpDD, REFIID iid, IUnknown* pUnkOuter)
 	{
-		return Main::DirectDrawCreate(lpGUID, (LPDIRECTDRAW*)lplpDD, pUnkOuter);
+		*lplpDD = new IDrawUnknown(NULL);
+		return DD_OK;
 	}
 
 	DirectDraw* FindDirectDrawByWindow(HWND hWnd)
@@ -50,7 +50,7 @@ namespace Main
 			if (ddraw->hWnd == hWnd || ddraw->hDraw == hWnd)
 				return ddraw;
 
-			ddraw = ddraw->last;
+			ddraw = (DirectDraw*)ddraw->last;
 		}
 
 		return NULL;

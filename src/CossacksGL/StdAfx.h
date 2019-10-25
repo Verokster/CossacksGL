@@ -71,12 +71,12 @@ extern "C"
 	__declspec(dllimport) int __cdecl fclose(FILE*);
 }
 
-
 #define MemoryAlloc(size) malloc(size)
 #define MemoryFree(block) free(block)
 #define MemorySet(dst, val, size) memset(dst, val, size)
 #define MemoryZero(dst, size) memset(dst, 0, size)
 #define MemoryCopy(dst, src, size) memcpy(dst, src, size)
+#define MemoryCompare(buf1, buf2, size) memcmp(buf1, buf2, size)
 #define MathCeil(x) ceil(x)
 #define MathFloor(x) floor(x)
 #define StrPrint(buf, fmt, ...) sprintf(buf, fmt, __VA_ARGS__)

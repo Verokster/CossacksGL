@@ -19,26 +19,35 @@
     <ClCompile Include="Allocation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DirectDraw.cpp">
-      <Filter>Source Files\Draw</Filter>
-    </ClCompile>
-    <ClCompile Include="DirectDrawPalette.cpp">
-      <Filter>Source Files\Draw</Filter>
-    </ClCompile>
-    <ClCompile Include="DirectDrawSurface.cpp">
-      <Filter>Source Files\Draw</Filter>
-    </ClCompile>
     <ClCompile Include="Config.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Hooks.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DirectDrawInterface.cpp">
-      <Filter>Source Files\Draw</Filter>
-    </ClCompile>
     <ClCompile Include="Window.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectDraw.cpp">
+      <Filter>Source Files\Draw\Direct</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectDrawPalette.cpp">
+      <Filter>Source Files\Draw\Direct</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectDrawSurface.cpp">
+      <Filter>Source Files\Draw\Direct</Filter>
+    </ClCompile>
+    <ClCompile Include="IDraw.cpp">
+      <Filter>Source Files\Draw\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="IDrawPalette.cpp">
+      <Filter>Source Files\Draw\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="IDrawSurface.cpp">
+      <Filter>Source Files\Draw\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="IDrawUnknown.cpp">
+      <Filter>Source Files\Draw\Base</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -66,23 +75,32 @@
     <ClInclude Include="Allocation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DirectDraw.h">
-      <Filter>Header Files\Draw</Filter>
-    </ClInclude>
-    <ClInclude Include="DirectDrawPalette.h">
-      <Filter>Header Files\Draw</Filter>
-    </ClInclude>
-    <ClInclude Include="DirectDrawSurface.h">
-      <Filter>Header Files\Draw</Filter>
-    </ClInclude>
     <ClInclude Include="Config.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DirectDrawInterface.h">
-      <Filter>Header Files\Draw</Filter>
-    </ClInclude>
     <ClInclude Include="Window.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectDraw.h">
+      <Filter>Header Files\Draw\Direct</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectDrawPalette.h">
+      <Filter>Header Files\Draw\Direct</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectDrawSurface.h">
+      <Filter>Header Files\Draw\Direct</Filter>
+    </ClInclude>
+    <ClInclude Include="IDraw.h">
+      <Filter>Header Files\Draw\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="IDrawPalette.h">
+      <Filter>Header Files\Draw\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="IDrawSurface.h">
+      <Filter>Header Files\Draw\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="IDrawUnknown.h">
+      <Filter>Header Files\Draw\Base</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -103,6 +121,18 @@
     </Filter>
     <Filter Include="Resource Files\Shaders Files">
       <UniqueIdentifier>{54f0c6ed-e052-4119-9e1f-c36f66e4badc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Draw\Base">
+      <UniqueIdentifier>{dd0e499b-8efe-4447-a63b-0afb2e8d6ee0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Draw\Base">
+      <UniqueIdentifier>{21cbbc3d-4e83-4eb6-80dc-8694f61746e9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Draw\Direct">
+      <UniqueIdentifier>{9ef508bb-7231-479f-b9b8-37fab40d633e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Draw\Direct">
+      <UniqueIdentifier>{bc878067-7c71-4a26-a5e0-4263b0b460de}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

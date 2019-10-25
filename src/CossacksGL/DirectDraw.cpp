@@ -31,27 +31,7 @@
 #include "Window.h"
 #include "DirectDraw.h"
 #include "DirectDrawSurface.h"
-#include "DirectDrawInterface.h"
 #include "FpsCounter.h"
-
-#pragma region Not Implemented
-ULONG DirectDraw::AddRef() { return 0; }
-HRESULT DirectDraw::Compact() { return DD_OK; }
-HRESULT DirectDraw::CreateClipper(DWORD, LPDIRECTDRAWCLIPPER*, IUnknown*) { return DD_OK; }
-HRESULT DirectDraw::EnumSurfaces(DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMSURFACESCALLBACK) { return DD_OK; }
-HRESULT DirectDraw::FlipToGDISurface(void) { return DD_OK; }
-HRESULT DirectDraw::GetCaps(LPDDCAPS, LPDDCAPS) { return DD_OK; }
-HRESULT DirectDraw::GetDisplayMode(LPDDSURFACEDESC) { return DD_OK; }
-HRESULT DirectDraw::GetFourCCCodes(LPDWORD, LPDWORD) { return DD_OK; }
-HRESULT DirectDraw::GetGDISurface(LPDIRECTDRAWSURFACE*) { return DD_OK; }
-HRESULT DirectDraw::GetMonitorFrequency(LPDWORD) { return DD_OK; }
-HRESULT DirectDraw::GetScanLine(LPDWORD) { return DD_OK; }
-HRESULT DirectDraw::GetVerticalBlankStatus(LPBOOL) { return DD_OK; }
-HRESULT DirectDraw::Initialize(GUID*) { return DD_OK; }
-HRESULT DirectDraw::RestoreDisplayMode() { return DD_OK; }
-HRESULT DirectDraw::DuplicateSurface(LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE*) { return DD_OK; }
-HRESULT DirectDraw::WaitForVerticalBlank(DWORD, HANDLE) { return DD_OK; }
-#pragma endregion
 
 #define RECOUNT 64
 #define WHITE 0xFFFFFFFF;
@@ -108,26 +88,29 @@ DWORD __stdcall RenderThread(LPVOID lpParameter)
 	ddraw->hDc = ::GetDC(ddraw->hDraw);
 	if (ddraw->hDc)
 	{
-		PIXELFORMATDESCRIPTOR pfd;
-		INT glPixelFormat = GL::PreparePixelFormat(&pfd);
-		if (!glPixelFormat)
+		if (!::GetPixelFormat(ddraw->hDc))
 		{
-			glPixelFormat = ChoosePixelFormat(ddraw->hDc, &pfd);
+			PIXELFORMATDESCRIPTOR pfd;
+			INT glPixelFormat = GL::PreparePixelFormat(&pfd);
 			if (!glPixelFormat)
-				Main::ShowError(IDS_ERROR_CHOOSE_PF, __FILE__, __LINE__);
-			else if (pfd.dwFlags & PFD_NEED_PALETTE)
-				Main::ShowError(IDS_ERROR_NEED_PALETTE, __FILE__, __LINE__);
+			{
+				glPixelFormat = ChoosePixelFormat(ddraw->hDc, &pfd);
+				if (!glPixelFormat)
+					Main::ShowError(IDS_ERROR_CHOOSE_PF, __FILE__, __LINE__);
+				else if (pfd.dwFlags & PFD_NEED_PALETTE)
+					Main::ShowError(IDS_ERROR_NEED_PALETTE, __FILE__, __LINE__);
+			}
+
+			GL::ResetPixelFormatDescription(&pfd);
+			if (DescribePixelFormat(ddraw->hDc, glPixelFormat, sizeof(PIXELFORMATDESCRIPTOR), &pfd) == NULL)
+				Main::ShowError(IDS_ERROR_DESCRIBE_PF, __FILE__, __LINE__);
+
+			if (!SetPixelFormat(ddraw->hDc, glPixelFormat, &pfd))
+				Main::ShowError(IDS_ERROR_SET_PF, __FILE__, __LINE__);
+
+			if ((pfd.iPixelType != PFD_TYPE_RGBA) || (pfd.cRedBits < 5) || (pfd.cGreenBits < 6) || (pfd.cBlueBits < 5))
+				Main::ShowError(IDS_ERROR_BAD_PF, __FILE__, __LINE__);
 		}
-
-		if (!SetPixelFormat(ddraw->hDc, glPixelFormat, &pfd))
-			Main::ShowError(IDS_ERROR_SET_PF, __FILE__, __LINE__);
-
-		GL::ResetPixelFormatDescription(&pfd);
-		if (DescribePixelFormat(ddraw->hDc, glPixelFormat, sizeof(PIXELFORMATDESCRIPTOR), &pfd) == NULL)
-			Main::ShowError(IDS_ERROR_DESCRIBE_PF, __FILE__, __LINE__);
-
-		if ((pfd.iPixelType != PFD_TYPE_RGBA) || (pfd.cRedBits < 5) || (pfd.cGreenBits < 6) || (pfd.cBlueBits < 5))
-			Main::ShowError(IDS_ERROR_BAD_PF, __FILE__, __LINE__);
 
 		HGLRC hRc = wglCreateContext(ddraw->hDc);
 		if (hRc)
@@ -151,10 +134,15 @@ DWORD __stdcall RenderThread(LPVOID lpParameter)
 
 				Window::CheckMenu();
 				GLPixelStorei(GL_UNPACK_ALIGNMENT, 8);
-				if (glVersion >= GL_VER_2_0)
-					ddraw->RenderNew();
-				else
-					ddraw->RenderOld();
+
+				timeBeginPeriod(1);
+				{
+					if (glVersion >= GL_VER_2_0)
+						ddraw->RenderNew();
+					else
+						ddraw->RenderOld();
+				}
+				timeEndPeriod(1);
 
 				wglMakeCurrent(ddraw->hDc, NULL);
 			}
@@ -171,11 +159,22 @@ DWORD __stdcall RenderThread(LPVOID lpParameter)
 
 #pragma optimize("t", on)
 
+DWORD __fastcall GetPow2(DWORD value)
+{
+	DWORD res = 1;
+	while (res < value)
+		res <<= 1;
+	return res;
+}
+
 VOID __fastcall UseShaderProgram(ShaderProgram* program, DWORD texSize)
 {
 	if (!program->id)
 	{
 		program->id = GLCreateProgram();
+
+		GLBindAttribLocation(program->id, 0, "vCoord");
+		GLBindAttribLocation(program->id, 1, "vTex");
 
 		GLuint vShader = GL::CompileShaderSource(program->vertexName, program->version, GL_VERTEX_SHADER);
 		GLuint fShader = GL::CompileShaderSource(program->fragmentName, program->version, GL_FRAGMENT_SHADER);
@@ -193,7 +192,7 @@ VOID __fastcall UseShaderProgram(ShaderProgram* program, DWORD texSize)
 		GLDeleteShader(vShader);
 
 		GLUseProgram(program->id);
-		GLUniformMatrix4fv(GLGetUniformLocation(program->id, "mvp"), 1, GL_FALSE, program->mvp);
+
 		GLUniform1i(GLGetUniformLocation(program->id, "tex01"), GL_TEXTURE0 - GL_TEXTURE0);
 
 		GLint loc = GLGetUniformLocation(program->id, "pal01");
@@ -215,11 +214,7 @@ VOID DirectDraw::RenderOld()
 	if (glMaxTexSize < 256)
 		glMaxTexSize = 256;
 
-	DWORD size = this->dwMode->width > this->dwMode->height ? this->dwMode->width : this->dwMode->height;
-	DWORD maxAllow = 1;
-	while (maxAllow < size)
-		maxAllow <<= 1;
-
+	DWORD maxAllow = GetPow2(this->dwMode->width > this->dwMode->height ? this->dwMode->width : this->dwMode->height);
 	DWORD maxTexSize = maxAllow < glMaxTexSize ? maxAllow : glMaxTexSize;
 	DWORD texPitch = this->pitch / (this->dwMode->bpp >> 3);
 
@@ -563,28 +558,11 @@ VOID DirectDraw::RenderOld()
 
 VOID DirectDraw::RenderNew()
 {
-	DWORD maxSize = this->dwMode->width > this->dwMode->height ? this->dwMode->width : this->dwMode->height;
-	DWORD maxTexSize = 1;
-	while (maxTexSize < maxSize)
-		maxTexSize <<= 1;
+	DWORD maxTexSize = GetPow2(this->dwMode->width > this->dwMode->height ? this->dwMode->width : this->dwMode->height);
 	FLOAT texWidth = this->dwMode->width == maxTexSize ? 1.0f : FLOAT((FLOAT)this->dwMode->width / maxTexSize);
 	FLOAT texHeight = this->dwMode->height == maxTexSize ? 1.0f : FLOAT((FLOAT)this->dwMode->height / maxTexSize);
 
 	DWORD texPitch = this->pitch / (this->dwMode->bpp >> 3);
-
-	FLOAT buffer[4][4] = {
-		{ 0.0f, 0.0f, 0.0f, 0.0f },
-		{ (FLOAT)this->dwMode->width, 0.0f, texWidth, 0.0f },
-		{ (FLOAT)this->dwMode->width, (FLOAT)this->dwMode->height, texWidth, texHeight },
-		{ 0.0f, (FLOAT)this->dwMode->height, 0.0f, texHeight }
-	};
-
-	FLOAT mvpMatrix[4][4] = {
-		{ FLOAT(2.0f / this->dwMode->width), 0.0f, 0.0f, 0.0f },
-		{ 0.0f, FLOAT(-2.0f / this->dwMode->height), 0.0f, 0.0f },
-		{ 0.0f, 0.0f, 2.0f, 0.0f },
-		{ -1.0f, 1.0f, -1.0f, 1.0f }
-	};
 
 	const CHAR* glslVersion = glVersion >= GL_VER_3_0 ? GLSL_VER_1_30 : GLSL_VER_1_10;
 
@@ -593,12 +571,11 @@ VOID DirectDraw::RenderNew()
 		ShaderProgram nearest;
 		ShaderProgram linear;
 	} shaders = {
-		{ 0, glslVersion, IDR_VERTEX_SIMPLE, IDR_FRAGMENT_SIMPLE, (GLfloat*)mvpMatrix },
-		{ 0, glslVersion, IDR_VERTEX_NEAREST, IDR_FRAGMENT_NEAREST, (GLfloat*)mvpMatrix },
-		{ 0, glslVersion, IDR_VERTEX_LINEAR, IDR_FRAGMENT_LINEAR, (GLfloat*)mvpMatrix },
+		{ 0, glslVersion, IDR_VERTEX_SIMPLE, IDR_FRAGMENT_SIMPLE },
+		{ 0, glslVersion, IDR_VERTEX_NEAREST, IDR_FRAGMENT_NEAREST },
+		{ 0, glslVersion, IDR_VERTEX_LINEAR, IDR_FRAGMENT_LINEAR },
 	};
 
-	ShaderProgram* program = this->dwMode->bpp != 8 ? &shaders.simple : (config.windowedMode && config.filtering ? &shaders.linear : &shaders.nearest);
 	{
 		GLuint arrayName;
 		if (glVersion >= GL_VER_3_0)
@@ -612,16 +589,44 @@ VOID DirectDraw::RenderNew()
 		{
 			GLBindBuffer(GL_ARRAY_BUFFER, bufferName);
 			{
-				GLBufferData(GL_ARRAY_BUFFER, sizeof(buffer), buffer, GL_STATIC_DRAW);
+				{
+					FLOAT mvp[4][4] = {
+						{ FLOAT(2.0f / this->dwMode->width), 0.0f, 0.0f, 0.0f },
+						{ 0.0f, FLOAT(-2.0f / this->dwMode->height), 0.0f, 0.0f },
+						{ 0.0f, 0.0f, 2.0f, 0.0f },
+						{ -1.0f, 1.0f, -1.0f, 1.0f }
+					};
 
-				UseShaderProgram(program, maxTexSize);
-				GLint attrCoordsLoc = GLGetAttribLocation(program->id, "vCoord");
-				GLEnableVertexAttribArray(attrCoordsLoc);
-				GLVertexAttribPointer(attrCoordsLoc, 2, GL_FLOAT, GL_FALSE, 16, (GLvoid*)0);
+					FLOAT buffer[4][8] = {
+						{ 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f },
+						{ (FLOAT)this->dwMode->width, 0.0f, 0.0f, 1.0f, texWidth, 0.0f, 0.0f, 0.0f },
+						{ (FLOAT)this->dwMode->width, (FLOAT)this->dwMode->height, 0.0f, 1.0f, texWidth, texHeight, 0.0f, 0.0f },
+						{ 0.0f, (FLOAT)this->dwMode->height, 0.0f, 1.0f, 0.0f, texHeight, 0.0f, 0.0f }
+					};
 
-				GLint attrTexCoordsLoc = GLGetAttribLocation(program->id, "vTexCoord");
-				GLEnableVertexAttribArray(attrTexCoordsLoc);
-				GLVertexAttribPointer(attrTexCoordsLoc, 2, GL_FLOAT, GL_FALSE, 16, (GLvoid*)8);
+					for (DWORD i = 0; i < 4; ++i)
+					{
+						FLOAT* vector = &buffer[i][0];
+						for (DWORD j = 0; j < 4; ++j)
+						{
+							FLOAT sum = 0.0f;
+							for (DWORD v = 0; v < 4; ++v)
+								sum += mvp[v][j] * vector[v];
+
+							vector[j] = sum;
+						}
+					}
+
+					GLBufferData(GL_ARRAY_BUFFER, sizeof(buffer), buffer, GL_STATIC_DRAW);
+				}
+
+				{
+					GLEnableVertexAttribArray(0);
+					GLVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 32, (GLvoid*)0);
+
+					GLEnableVertexAttribArray(1);
+					GLVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 32, (GLvoid*)16);
+				}
 
 				GLClearColor(0.0, 0.0, 0.0, 1.0);
 				this->viewport.refresh = TRUE;
@@ -811,6 +816,8 @@ VOID DirectDraw::RenderNew()
 
 							GLTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, maxTexSize, maxTexSize, GL_NONE, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
+							UseShaderProgram(&shaders.simple, maxTexSize);
+
 							do
 							{
 								if (mciVideo.deviceId)
@@ -851,6 +858,7 @@ VOID DirectDraw::RenderNew()
 										if (this->isStateChanged)
 										{
 											this->isStateChanged = FALSE;
+											
 											GLint filter = config.windowedMode && config.filtering ? GL_LINEAR : GL_NEAREST;
 											GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
 											GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
@@ -891,12 +899,14 @@ VOID DirectDraw::RenderNew()
 	}
 	GLUseProgram(NULL);
 
-	program = (ShaderProgram*)&shaders;
+	ShaderProgram*  program = (ShaderProgram*)&shaders;
 	DWORD count = sizeof(shaders) / sizeof(ShaderProgram);
 	do
 	{
 		if (program->id)
 			GLDeleteProgram(program->id);
+
+		++program;
 	} while (--count);
 }
 
@@ -1156,28 +1166,31 @@ VOID DirectDraw::RenderStop()
 	CloseHandle(this->hDrawThread);
 	this->hDrawThread = NULL;
 
-	BOOL wasFull = GetWindowLong(this->hDraw, GWL_STYLE) & WS_POPUP;
-	if (!config.singleWindow)
+	if (this->hDraw != this->hWnd)
+	{
 		DestroyWindow(this->hDraw);
+		GL::ResetPixelFormat();
+	}
 
 	this->hDraw = NULL;
-	if (wasFull)
-		GL::ResetPixelFormat();
 
 	glVersion = NULL;
 	Window::CheckMenu();
 }
 
-DirectDraw::DirectDraw(DirectDraw* lastObj)
+DirectDraw::DirectDraw(IDrawUnknown** list)
+	: IDraw(list)
 {
-	this->last = lastObj;
+	this->surfaceEntries = NULL;
+	this->paletteEntries = NULL;
+
+	this->attachedSurface = NULL;
 
 	this->dwMode = NULL;
 	this->pitch = 0;
 
 	this->indexBuffer = NULL;
 	this->palette = NULL;
-	this->ddPallete = NULL;
 
 	this->hWnd = NULL;
 	this->hDraw = NULL;
@@ -1189,35 +1202,29 @@ DirectDraw::DirectDraw(DirectDraw* lastObj)
 	MemoryZero(&this->windowPlacement, sizeof(WINDOWPLACEMENT));
 }
 
+DirectDraw::~DirectDraw()
+{
+	this->RenderStop();
+
+	if (this->indexBuffer)
+		AlignedFree(this->indexBuffer);
+
+	if (this->palette)
+		AlignedFree(this->palette);
+}
+
 HRESULT DirectDraw::QueryInterface(REFIID riid, LPVOID* ppvObj)
 {
-	*ppvObj = new DirectDrawInterface();
+	*ppvObj = new IDrawUnknown(NULL);
 	return DD_OK;
 }
 
 ULONG DirectDraw::Release()
 {
-	this->ReleaseMode();
-
-	if (ddrawList == this)
-		ddrawList = this->last;
-	else
-	{
-		DirectDraw* ddraw = ddrawList;
-		while (ddraw)
-		{
-			if (ddraw->last == this)
-			{
-				ddraw->last = ddraw->last->last;
-				break;
-			}
-
-			ddraw = ddraw->last;
-		}
-	}
+	if (--this->refCount)
+		return this->refCount;
 
 	delete this;
-	return 0;
 }
 
 HRESULT DirectDraw::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext, LPDDENUMMODESCALLBACK lpEnumModesCallback)
@@ -1323,6 +1330,9 @@ HRESULT DirectDraw::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP)
 	this->pitch = dwWidth * dwBPP >> 3;
 	if (this->pitch % 16)
 		this->pitch = (this->pitch + 16) & 0xFFFFFFF0;
+
+	if (this->indexBuffer)
+		AlignedFree(this->indexBuffer);
 
 	if (this->indexBuffer)
 		AlignedFree(this->indexBuffer);
@@ -1453,18 +1463,16 @@ HRESULT DirectDraw::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 	return DD_OK;
 }
 
-HRESULT DirectDraw::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray, LPDIRECTDRAWPALETTE* lplpDDPalette, IUnknown* pUnkOuter)
+HRESULT DirectDraw::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray, IDrawPalette** lplpDDPalette, IUnknown* pUnkOuter)
 {
-	this->ddPallete = new DirectDrawPalette(this, this->ddPallete);
-	*(DirectDrawPalette**)lplpDDPalette = this->ddPallete;
-
-	MemoryCopy(this->palette, lpDDColorArray, 255 * sizeof(DWORD));
+	*lplpDDPalette = new DirectDrawPalette((IDrawUnknown**)&this->paletteEntries, this);
+	MemoryCopy(this->palette, lpDDColorArray, 255 * sizeof(PALETTEENTRY));
 	this->isPalChanged = TRUE;
 
 	return DD_OK;
 }
 
-HRESULT DirectDraw::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWSURFACE* lplpDDSurface, IUnknown* pUnkOuter)
+HRESULT DirectDraw::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, IDrawSurface** lplpDDSurface, IUnknown* pUnkOuter)
 {
 	if (this->dwMode)
 	{
@@ -1473,31 +1481,8 @@ HRESULT DirectDraw::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWS
 		lpDDSurfaceDesc->lPitch = this->pitch;
 	}
 
-	*(DirectDrawSurface**)lplpDDSurface = new DirectDrawSurface(this);
-	this->surface = *lplpDDSurface;
+	this->attachedSurface = new DirectDrawSurface((IDrawUnknown**)&this->surfaceEntries, this);
+	*lplpDDSurface = this->attachedSurface;
 
 	return DD_OK;
-}
-
-VOID DirectDraw::ReleaseMode()
-{
-	this->RenderStop();
-
-	if (this->ddPallete)
-	{
-		delete this->ddPallete;
-		this->ddPallete = NULL;
-	}
-
-	if (this->palette)
-	{
-		AlignedFree(this->palette);
-		this->palette = NULL;
-	}
-
-	if (this->indexBuffer)
-	{
-		AlignedFree(this->indexBuffer);
-		this->indexBuffer = NULL;
-	}
 }

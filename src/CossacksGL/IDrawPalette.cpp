@@ -22,28 +22,16 @@
 	SOFTWARE.
 */
 
-#pragma once
-#include "IDrawSurface.h"
-#include "DirectDrawPalette.h"
-#include "GLib.h"
-#include "Allocation.h"
+#include "stdafx.h"
+#include "IDrawPalette.h"
 
-class DirectDraw;
+IDrawPalette::IDrawPalette(IDrawUnknown** list)
+	: IDrawUnknown(list)
+{
+}
 
-class DirectDrawSurface : public IDrawSurface {
-public:
-	DirectDraw* ddraw;
-	DirectDrawPalette* attachedPalette;
-
-	DirectDrawSurface(IDrawUnknown**, DirectDraw*);
-	~DirectDrawSurface();
-
-	// Inherited via IDirectDrawSurface
-	HRESULT __stdcall QueryInterface(REFIID, LPVOID*) override;
-	ULONG __stdcall Release() override;
-	HRESULT __stdcall GetDC(HDC*) override;
-	HRESULT __stdcall GetPixelFormat(LPDDPIXELFORMAT) override;
-	HRESULT __stdcall Lock(LPRECT, LPDDSURFACEDESC, DWORD, HANDLE) override;
-	HRESULT __stdcall SetPalette(IDrawPalette*) override;
-};
-
+// Inherited via IDrawPalette
+HRESULT __stdcall IDrawPalette::GetCaps(LPDWORD) { return DD_OK; }
+HRESULT __stdcall IDrawPalette::GetEntries(DWORD, DWORD, DWORD, LPPALETTEENTRY) { return DD_OK; }
+HRESULT __stdcall IDrawPalette::Initialize(LPDIRECTDRAW, DWORD, LPPALETTEENTRY) { return DD_OK; }
+HRESULT __stdcall IDrawPalette::SetEntries(DWORD, DWORD, DWORD, LPPALETTEENTRY) { return DD_OK; }

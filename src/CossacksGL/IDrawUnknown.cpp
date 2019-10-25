@@ -22,14 +22,66 @@
 	SOFTWARE.
 */
 
-#include "Allocation.h"
+#include "stdafx.h"
+#include "IDrawUnknown.h"
 
-#pragma once
-class DirectDrawInterface : IUnknown, public Allocation
+VOID* IDrawUnknown::operator new(size_t size) { return MemoryAlloc(size); }
+
+VOID IDrawUnknown::operator delete(VOID* p)
 {
-public:
-	HRESULT __stdcall QueryInterface(REFIID, LPVOID*);
-	ULONG __stdcall AddRef();
-	ULONG __stdcall Release();
-};
+	IDrawUnknown* item = (IDrawUnknown*)p;
+	if (item->list)
+	{
+		IDrawUnknown* entry = *item->list;
+		if (entry)
+		{
+			if (entry == item)
+			{
+				*item->list = entry->last;
+				MemoryFree(p);
+				return;
+			}
+			else
+				while (entry->last)
+				{
+					if (entry->last == item)
+					{
+						entry->last = item->last;
+						MemoryFree(p);
+						return;
+					}
 
+					entry = entry->last;
+				}
+		}
+	}
+}
+
+IDrawUnknown::IDrawUnknown(IDrawUnknown** list)
+{
+	this->refCount = 1;
+	this->list = list;
+	if (list)
+	{
+		this->last = *list;
+		*list = this;
+	}
+	else
+		this->last = NULL;
+}
+
+HRESULT __stdcall IDrawUnknown::QueryInterface(REFIID, LPVOID*) { return DD_OK; }
+
+ULONG __stdcall IDrawUnknown::AddRef()
+{
+	return ++this->refCount;
+}
+
+ULONG __stdcall IDrawUnknown::Release()
+{
+	if (--this->refCount)
+		return this->refCount;
+
+	delete this;
+	return 0;
+}

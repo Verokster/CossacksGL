@@ -307,7 +307,7 @@ VOID FpsCounter::Reset()
 VOID FpsCounter::Calculate()
 {
 	FrameItem* tickItem = &tickQueue[this->currentIndex];
-	tickItem->tick = GetTickCount();
+	tickItem->tick = timeGetTime();
 
 	if (this->lastTick)
 	{

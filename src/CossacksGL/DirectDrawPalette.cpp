@@ -26,33 +26,18 @@
 #include "DirectDrawPalette.h"
 #include "DirectDraw.h"
 
-#pragma region Not Implemented
-HRESULT DirectDrawPalette::QueryInterface(REFIID, LPVOID*) { return DD_OK; }
-ULONG DirectDrawPalette::AddRef() { return 0; }
-HRESULT DirectDrawPalette::GetCaps(LPDWORD) { return DD_OK; }
-HRESULT DirectDrawPalette::GetEntries(DWORD, DWORD, DWORD, LPPALETTEENTRY) { return DD_OK; }
-HRESULT DirectDrawPalette::Initialize(LPDIRECTDRAW, DWORD, LPPALETTEENTRY) { return DD_OK; }
-#pragma endregion
-
-ULONG DirectDrawPalette::Release()
+DirectDrawPalette::DirectDrawPalette(IDrawUnknown** list, DirectDraw* lpDD) : IDrawPalette(list)
 {
-	if (this->previous)
-		this->previous->Release();
-
-	delete this;
-	return 0;
+	this->ddraw = lpDD;
 }
 
 HRESULT DirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries)
 {
-	MemoryCopy(this->ddraw->palette, lpEntries, 255 * sizeof(DWORD));
-	this->ddraw->isPalChanged = TRUE;
+	if (MemoryCompare(this->ddraw->palette, lpEntries, 255 * sizeof(PALETTEENTRY)))
+	{
+		MemoryCopy(this->ddraw->palette, lpEntries, 255 * sizeof(PALETTEENTRY));
+		this->ddraw->isPalChanged = TRUE;
+	}
 
 	return DD_OK;
-}
-
-DirectDrawPalette::DirectDrawPalette(DirectDraw* lpDD, DirectDrawPalette* prev)
-{
-	this->ddraw = lpDD;
-	this->previous = prev;
 }

@@ -49,7 +49,7 @@ namespace Window
 			KBDLLHOOKSTRUCT* phs = (KBDLLHOOKSTRUCT*)lParam;
 			if (phs->vkCode == VK_SNAPSHOT)
 			{
-				HWND hWnd = GetActiveWindow();
+				HWND hWnd = GetForegroundWindow();
 
 				DirectDraw* ddraw = ddrawList;
 				if (ddraw && (ddraw->hWnd == hWnd || ddraw->hDraw == hWnd))
@@ -71,7 +71,7 @@ namespace Window
 			while (ddraw)
 			{
 				ddraw->CaptureMouse((UINT)wParam, (LPMSLLHOOKSTRUCT)lParam);
-				ddraw = ddraw->last;
+				ddraw = (DirectDraw*)ddraw->last;
 			}
 		}
 
@@ -192,33 +192,6 @@ namespace Window
 				mmi->ptMaxSize.y = LONG_MAX >> 16;
 
 				return NULL;
-			}
-
-			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
-		}
-
-		case WM_MOVE:
-		{
-			DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
-			if (ddraw && ddraw->hDraw && !config.singleWindow)
-			{
-				DWORD stye = GetWindowLong(ddraw->hDraw, GWL_STYLE);
-				if (stye & WS_POPUP)
-				{
-					POINT point = { LOWORD(lParam), HIWORD(lParam) };
-					ScreenToClient(hWnd, &point);
-
-					RECT rect;
-					rect.left = point.x - LOWORD(lParam);
-					rect.top = point.y - HIWORD(lParam);
-					rect.right = rect.left + 256;
-					rect.bottom = rect.left + 256;
-
-					AdjustWindowRect(&rect, stye, TRUE);
-					SetWindowPos(ddraw->hDraw, NULL, rect.left, rect.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOREDRAW | SWP_NOREPOSITION | SWP_NOOWNERZORDER | SWP_NOACTIVATE | SWP_NOSENDCHANGING);
-				}
-				else
-					SetWindowPos(ddraw->hDraw, NULL, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOREDRAW | SWP_NOREPOSITION | SWP_NOOWNERZORDER | SWP_NOACTIVATE | SWP_NOSENDCHANGING);
 			}
 
 			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);

@@ -167,13 +167,16 @@
     <ClCompile Include="Allocation.cpp" />
     <ClCompile Include="Config.cpp" />
     <ClCompile Include="DirectDraw.cpp" />
-    <ClCompile Include="DirectDrawInterface.cpp" />
     <ClCompile Include="DirectDrawPalette.cpp" />
     <ClCompile Include="DirectDrawSurface.cpp" />
     <ClCompile Include="DllMain.cpp" />
     <ClCompile Include="FpsCounter.cpp" />
     <ClCompile Include="GLib.cpp" />
     <ClCompile Include="Hooks.cpp" />
+    <ClCompile Include="IDraw.cpp" />
+    <ClCompile Include="IDrawPalette.cpp" />
+    <ClCompile Include="IDrawSurface.cpp" />
+    <ClCompile Include="IDrawUnknown.cpp" />
     <ClCompile Include="StdAfx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
     </ClCompile>
@@ -184,13 +187,16 @@
     <ClInclude Include="Allocation.h" />
     <ClInclude Include="Config.h" />
     <ClInclude Include="DirectDraw.h" />
-    <ClInclude Include="DirectDrawInterface.h" />
     <ClInclude Include="DirectDrawPalette.h" />
     <ClInclude Include="DirectDrawSurface.h" />
     <ClInclude Include="ExtraTypes.h" />
     <ClInclude Include="FpsCounter.h" />
     <ClInclude Include="GLib.h" />
     <ClInclude Include="Hooks.h" />
+    <ClInclude Include="IDraw.h" />
+    <ClInclude Include="IDrawPalette.h" />
+    <ClInclude Include="IDrawSurface.h" />
+    <ClInclude Include="IDrawUnknown.h" />
     <ClInclude Include="Main.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="StdAfx.h" />

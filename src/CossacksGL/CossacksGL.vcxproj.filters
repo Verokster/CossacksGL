@@ -49,6 +49,9 @@
     <ClCompile Include="IDrawUnknown.cpp">
       <Filter>Source Files\Draw\Base</Filter>
     </ClCompile>
+    <ClCompile Include="PixelBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -101,6 +104,9 @@
     </ClInclude>
     <ClInclude Include="IDrawUnknown.h">
       <Filter>Header Files\Draw\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="PixelBuffer.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

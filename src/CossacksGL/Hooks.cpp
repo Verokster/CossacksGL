@@ -588,7 +588,7 @@ namespace Hooks
 	{
 		__asm {
 			lbl_start:
-				MOV ECX,DWORD PTR SS:[EBP-0x34]
+				MOV ECX, [EBP-0x34]
 				REP MOVSD
 				ADD ESI, [EBP-0x30]
 				ADD EDI, [EBP-0x2C]

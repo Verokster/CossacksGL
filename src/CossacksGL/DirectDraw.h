@@ -44,6 +44,7 @@ public:
 	DWORD mbPressed;
 
 	HANDLE hDrawThread;
+	HANDLE hCheckEvent;
 
 	DWORD pitch;
 	BYTE* indexBuffer;

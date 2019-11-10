@@ -177,6 +177,7 @@
     <ClCompile Include="IDrawPalette.cpp" />
     <ClCompile Include="IDrawSurface.cpp" />
     <ClCompile Include="IDrawUnknown.cpp" />
+    <ClCompile Include="PixelBuffer.cpp" />
     <ClCompile Include="StdAfx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
     </ClCompile>
@@ -198,6 +199,7 @@
     <ClInclude Include="IDrawSurface.h" />
     <ClInclude Include="IDrawUnknown.h" />
     <ClInclude Include="Main.h" />
+    <ClInclude Include="PixelBuffer.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="StdAfx.h" />
     <ClInclude Include="Window.h" />

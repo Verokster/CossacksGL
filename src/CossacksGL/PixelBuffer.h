@@ -47,5 +47,6 @@ public:
 	~PixelBuffer();
 
 	VOID Reset();
-	BOOL Update(VOID*);
+	VOID Prepare(VOID*);
+	BOOL Update();
 };

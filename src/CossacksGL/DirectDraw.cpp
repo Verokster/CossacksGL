@@ -742,13 +742,10 @@ VOID DirectDraw::RenderNew()
 												GLBindTexture(GL_TEXTURE_2D, indicesId);
 											}
 
-											BOOL isDraw = FALSE;
-											isDraw = pixelBuffer->Update(this->indexBuffer);
+											pixelBuffer->Prepare(this->indexBuffer);
 
 											if (config.fpsCounter)
 											{
-												isDraw = TRUE;
-
 												DWORD fps = fpsCounter->value;
 												DWORD digCount = 0;
 												DWORD current = fps;
@@ -765,8 +762,7 @@ VOID DirectDraw::RenderNew()
 												{
 													WORD* lpDig = (WORD*)counters[current % 10];
 
-													BYTE* idx = this->indexBuffer + FPS_Y * texPitch + FPS_X + FPS_WIDTH * (dcount - 1);
-													BYTE* pix = (BYTE*)pixelBuffer->primaryBuffer + FPS_WIDTH * (dcount - 1);
+													BYTE* pix = (BYTE*)pixelBuffer->primaryBuffer + FPS_Y * texPitch + FPS_X + FPS_WIDTH * (dcount - 1);
 
 													DWORD height = FPS_HEIGHT;
 													do
@@ -775,43 +771,22 @@ VOID DirectDraw::RenderNew()
 														DWORD width = FPS_WIDTH;
 														do
 														{
-															*pix++ = (check & 1) ? 0xFF : *idx;
-															++idx;
+															if (check & 1)
+																*pix = 0xFF;
+
+															++pix;
+
 															check >>= 1;
 														} while (--width);
 
-														idx += slice;
 														pix += slice;
 													} while (--height);
 
 													current = current / 10;
 												} while (--dcount);
-
-												dcount = 4;
-												while (dcount != digCount)
-												{
-													BYTE* idx = this->indexBuffer + FPS_Y * texPitch + FPS_X + FPS_WIDTH * (dcount - 1);
-													BYTE* pix = (BYTE*)pixelBuffer->primaryBuffer + FPS_WIDTH * (dcount - 1);
-
-													DWORD height = FPS_HEIGHT;
-													do
-													{
-														DWORD width = FPS_WIDTH;
-														do
-															*pix++ = *idx++;
-														while (--width);
-
-														idx += slice;
-														pix += slice;
-													} while (--height);
-
-													--dcount;
-												}
-
-												GLTexSubImage2D(GL_TEXTURE_2D, 0, FPS_X, FPS_Y, FPS_WIDTH * 4, FPS_HEIGHT, GL_ALPHA, GL_UNSIGNED_BYTE, pixelBuffer->primaryBuffer);
 											}
 
-											if (isDraw)
+											if (pixelBuffer->Update() || config.fpsCounter)
 											{
 												GLDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 												SwapBuffers(this->hDc);

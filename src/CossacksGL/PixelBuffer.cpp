@@ -100,11 +100,14 @@ DWORD __forceinline BackwardCompare(DWORD* ptr1, DWORD* ptr2, DWORD slice, DWORD
 	}
 }
 
-BOOL PixelBuffer::Update(VOID* data)
+VOID PixelBuffer::Prepare(VOID* data)
+{
+	MemoryCopy(this->primaryBuffer, data, this->length);
+}
+
+BOOL PixelBuffer::Update()
 {
 	BOOL res = FALSE;
-
-	MemoryCopy(this->primaryBuffer, data, this->length);
 
 	if (this->reset)
 	{

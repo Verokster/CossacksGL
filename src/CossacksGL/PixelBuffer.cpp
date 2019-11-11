@@ -43,11 +43,6 @@ PixelBuffer::~PixelBuffer()
 	AlignedFree(this->secondaryBuffer);
 }
 
-VOID PixelBuffer::Reset()
-{
-	this->reset = TRUE;
-}
-
 DWORD __forceinline ForwardCompare(DWORD* ptr1, DWORD* ptr2, DWORD slice, DWORD count)
 {
 	__asm {

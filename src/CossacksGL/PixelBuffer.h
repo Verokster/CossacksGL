@@ -46,7 +46,6 @@ public:
 	PixelBuffer(DWORD, DWORD);
 	~PixelBuffer();
 
-	VOID Reset();
 	VOID Prepare(VOID*);
 	BOOL Update();
 };

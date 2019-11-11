@@ -55,14 +55,14 @@ public:
 	BOOL isStateChanged;
 	BOOL isTakeSnapshot;
 	WINDOWPLACEMENT windowPlacement;
-	DWORD clearStage;
+	BOOL clear;
 	DWORD frequency;
 
 	DirectDraw(IDrawUnknown**);
 	~DirectDraw();
 
 	VOID CalcView();
-	VOID CheckView();
+	BOOL CheckView();
 	VOID SetFullscreenMode();
 	VOID SetWindowedMode();
 	VOID CaptureMouse(UINT uMsg, LPMSLLHOOKSTRUCT mInfo);

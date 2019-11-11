@@ -721,18 +721,22 @@ VOID DirectDraw::RenderNew()
 												fpsCounter->Calculate();
 											}
 
-											this->CheckView();
+											BOOL force = FALSE;
+
+											if (this->CheckView())
+												force = TRUE;
 
 											if (this->isStateChanged)
 											{
 												this->isStateChanged = FALSE;
+												force = TRUE;
 												UseShaderProgram(config.windowedMode && config.filtering ? &shaders.linear : &shaders.nearest, maxTexSize);
 											}
 
 											if (this->isPalChanged)
 											{
 												this->isPalChanged = FALSE;
-												pixelBuffer->Reset();
+												force = TRUE;
 
 												GLActiveTexture(GL_TEXTURE1);
 												GLBindTexture(GL_TEXTURE_1D, paletteId);
@@ -746,6 +750,8 @@ VOID DirectDraw::RenderNew()
 
 											if (config.fpsCounter)
 											{
+												force = TRUE;
+
 												DWORD fps = fpsCounter->value;
 												DWORD digCount = 0;
 												DWORD current = fps;
@@ -786,7 +792,7 @@ VOID DirectDraw::RenderNew()
 												} while (--dcount);
 											}
 
-											if (pixelBuffer->Update() || config.fpsCounter)
+											if (pixelBuffer->Update() || force)
 											{
 												GLDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 												SwapBuffers(this->hDc);
@@ -959,7 +965,7 @@ VOID DirectDraw::CalcView()
 	}
 }
 
-VOID DirectDraw::CheckView()
+BOOL DirectDraw::CheckView()
 {
 	if (this->viewport.refresh)
 	{
@@ -967,11 +973,18 @@ VOID DirectDraw::CheckView()
 		this->CalcView();
 		GLViewport(this->viewport.rectangle.x, this->viewport.rectangle.y, this->viewport.rectangle.width, this->viewport.rectangle.height);
 
-		this->clearStage = 0;
+		this->clear = TRUE;
+		GLClear(GL_COLOR_BUFFER_BIT);
+		return TRUE;
+	}
+	else if (this->clear)
+	{
+		this->clear = FALSE;
+		GLClear(GL_COLOR_BUFFER_BIT);
+		return TRUE;
 	}
 
-	if (++this->clearStage <= 2)
-		GLClear(GL_COLOR_BUFFER_BIT);
+	return FALSE;
 }
 
 VOID DirectDraw::CaptureMouse(UINT uMsg, LPMSLLHOOKSTRUCT mInfo)

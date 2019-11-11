@@ -25,24 +25,6 @@
 #include "stdafx.h"
 #include "PixelBuffer.h"
 
-PixelBuffer::PixelBuffer(DWORD width, DWORD height)
-{
-	this->width = width >> 2;
-	this->height = height;
-	this->length = width * height;
-
-	this->primaryBuffer = AlignedAlloc(this->length);
-	this->secondaryBuffer = AlignedAlloc(this->length);
-
-	this->reset = TRUE;
-}
-
-PixelBuffer::~PixelBuffer()
-{
-	AlignedFree(this->primaryBuffer);
-	AlignedFree(this->secondaryBuffer);
-}
-
 DWORD __forceinline ForwardCompare(DWORD* ptr1, DWORD* ptr2, DWORD slice, DWORD count)
 {
 	__asm {
@@ -95,21 +77,47 @@ DWORD __forceinline BackwardCompare(DWORD* ptr1, DWORD* ptr2, DWORD slice, DWORD
 	}
 }
 
+PixelBuffer::PixelBuffer(DWORD width, DWORD height, DWORD length)
+{
+	this->width = width;
+	this->height = height;
+	this->length = length;
+
+	this->primaryBuffer = AlignedAlloc(this->length);
+	this->secondaryBuffer = AlignedAlloc(this->length);
+
+	this->reset = TRUE;
+}
+
+PixelBuffer::~PixelBuffer()
+{
+	AlignedFree(this->primaryBuffer);
+	AlignedFree(this->secondaryBuffer);
+}
+
 VOID PixelBuffer::Prepare(VOID* data)
 {
 	MemoryCopy(this->primaryBuffer, data, this->length);
 }
 
-BOOL PixelBuffer::Update()
+PixelBuffer8::PixelBuffer8(DWORD width, DWORD height)
+	: PixelBuffer(width >> 2, height, width * height)
+{
+}
+
+PixelBuffer32::PixelBuffer32(DWORD width, DWORD height)
+	: PixelBuffer(width, height, (width * height) << 2)
+{
+}
+
+BOOL PixelBuffer8::Update()
 {
 	BOOL res = FALSE;
 
 	if (this->reset)
 	{
 		this->reset = FALSE;
-
 		GLTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, this->width << 2, this->height, GL_ALPHA, GL_UNSIGNED_BYTE, this->primaryBuffer);
-
 		res = TRUE;
 	}
 	else
@@ -119,15 +127,15 @@ BOOL PixelBuffer::Update()
 		if (index)
 		{
 			DWORD top = (size - index) / width;
-			for (DWORD y = top; y < this->height; y += BLOCK_HEIGHT)
+			for (DWORD y = top; y < this->height; y += BLOCK_HEIGHT_8)
 			{
-				DWORD bottom = y + BLOCK_HEIGHT;
+				DWORD bottom = y + BLOCK_HEIGHT_8;
 				if (bottom > this->height)
 					bottom = this->height;
 
-				for (DWORD x = 0; x < this->width; x += BLOCK_WIDTH)
+				for (DWORD x = 0; x < this->width; x += BLOCK_WIDTH_8)
 				{
-					DWORD right = x + BLOCK_WIDTH;
+					DWORD right = x + BLOCK_WIDTH_8;
 					if (right > this->width)
 						right = this->width;
 
@@ -150,27 +158,75 @@ BOOL PixelBuffer::Update()
 	return res;
 }
 
-BOOL PixelBuffer::UpdateBlock(RECT* newRect)
+BOOL PixelBuffer32::Update()
+{
+	BOOL res = FALSE;
+
+	if (this->reset)
+	{
+		this->reset = FALSE;
+		GLTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, this->width, this->height, GL_RGBA, GL_UNSIGNED_BYTE, this->primaryBuffer);
+		res = TRUE;
+	}
+	else
+	{
+		DWORD size = this->width * this->height;
+		DWORD index = ForwardCompare((DWORD*)this->secondaryBuffer, (DWORD*)this->primaryBuffer, 0, size);
+		if (index)
+		{
+			DWORD top = (size - index) / width;
+			for (DWORD y = top; y < this->height; y += BLOCK_HEIGHT_32)
+			{
+				DWORD bottom = y + BLOCK_HEIGHT_32;
+				if (bottom > this->height)
+					bottom = this->height;
+
+				for (DWORD x = 0; x < this->width; x += BLOCK_WIDTH_32)
+				{
+					DWORD right = x + BLOCK_WIDTH_32;
+					if (right > this->width)
+						right = this->width;
+
+					RECT rc = { *(LONG*)&x, *(LONG*)&y, *(LONG*)&right, *(LONG*)&bottom };
+					this->UpdateBlock(&rc);
+				}
+			}
+
+			res = TRUE;
+		}
+	}
+
+	if (res)
+	{
+		VOID* buffer = this->secondaryBuffer;
+		this->secondaryBuffer = this->primaryBuffer;
+		this->primaryBuffer = buffer;
+	}
+
+	return res;
+}
+
+BOOL PixelBuffer8::UpdateBlock(RECT* rect)
 {
 	DWORD found = NULL;
 	RECT rc;
 
 	{
-		DWORD* srcData = (DWORD*)this->secondaryBuffer + newRect->top * this->width;
-		DWORD* dstData = (DWORD*)this->primaryBuffer + newRect->top * this->width;
+		DWORD* srcData = (DWORD*)this->secondaryBuffer + rect->top * this->width;
+		DWORD* dstData = (DWORD*)this->primaryBuffer + rect->top * this->width;
 
-		for (LONG y = newRect->top; y < newRect->bottom; ++y)
+		for (LONG y = rect->top; y < rect->bottom; ++y)
 		{
-			DWORD index = ForwardCompare(srcData, dstData, newRect->left, newRect->right - newRect->left);
+			DWORD index = ForwardCompare(srcData, dstData, rect->left, rect->right - rect->left);
 			if (index)
 			{
 				found = 1;
-				rc.left = rc.right = newRect->right - index;
+				rc.left = rc.right = rect->right - index;
 			}
 
 			if (found)
 			{
-				LONG start = newRect->right - 1;
+				LONG start = rect->right - 1;
 				rc.right += BackwardCompare(srcData, dstData, start, start - rc.right);
 				rc.top = rc.bottom = y;
 				break;
@@ -184,61 +240,139 @@ BOOL PixelBuffer::UpdateBlock(RECT* newRect)
 	if (found)
 	{
 		{
+			DWORD* srcData = (DWORD*)this->secondaryBuffer + (rect->bottom - 1) * this->width;
+			DWORD* dstData = (DWORD*)this->primaryBuffer + (rect->bottom - 1) * this->width;
+
+			for (LONG y = rect->bottom - 1; y > rc.top; --y)
 			{
-				DWORD* srcData = (DWORD*)this->secondaryBuffer + (newRect->bottom - 1) * this->width;
-				DWORD* dstData = (DWORD*)this->primaryBuffer + (newRect->bottom - 1) * this->width;
-
-				for (LONG y = newRect->bottom - 1; y > rc.top; --y)
+				DWORD index = ForwardCompare(srcData, dstData, rect->left, rect->right - rect->left);
+				if (index)
 				{
-					DWORD index = ForwardCompare(srcData, dstData, newRect->left, newRect->right - newRect->left);
-					if (index)
-					{
-						found |= 2;
+					found |= 2;
 
-						LONG x = newRect->right - index;
-						if (rc.left > x)
-							rc.left = x;
-						else if (rc.right < x)
-							rc.right = x;
-					}
-
-					if (found & 2)
-					{
-						LONG start = newRect->right - 1;
-						rc.right += BackwardCompare(srcData, dstData, start, start - rc.right);
-						rc.bottom = y;
-						break;
-					}
-
-					srcData -= this->width;
-					dstData -= this->width;
+					LONG x = rect->right - index;
+					if (rc.left > x)
+						rc.left = x;
+					else if (rc.right < x)
+						rc.right = x;
 				}
-			}
 
-			{
-				DWORD* srcData = (DWORD*)this->secondaryBuffer + (rc.top + 1) * this->width;
-				DWORD* dstData = (DWORD*)this->primaryBuffer + (rc.top + 1) * this->width;
-
-				for (LONG y = rc.top + 1; y < rc.bottom; ++y)
+				if (found & 2)
 				{
-					rc.left -= ForwardCompare(srcData, dstData, newRect->left, rc.left - newRect->left);
-
-					LONG start = newRect->right - 1;
+					LONG start = rect->right - 1;
 					rc.right += BackwardCompare(srcData, dstData, start, start - rc.right);
-
-					srcData += this->width;
-					dstData += this->width;
+					rc.bottom = y;
+					break;
 				}
+
+				srcData -= this->width;
+				dstData -= this->width;
 			}
 		}
 
-		++rc.right;
-		++rc.bottom;
+		{
+			DWORD* srcData = (DWORD*)this->secondaryBuffer + (rc.top + 1) * this->width;
+			DWORD* dstData = (DWORD*)this->primaryBuffer + (rc.top + 1) * this->width;
 
-		Rect rect = { rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top };
+			for (LONG y = rc.top + 1; y < rc.bottom; ++y)
+			{
+				rc.left -= ForwardCompare(srcData, dstData, rect->left, rc.left - rect->left);
 
-		DWORD* ptr = (DWORD*)this->primaryBuffer + rect.y * this->width + rect.x;
-		GLTexSubImage2D(GL_TEXTURE_2D, 0, rect.x << 2, rect.y, rect.width << 2, rect.height, GL_ALPHA, GL_UNSIGNED_BYTE, ptr);
+				LONG start = rect->right - 1;
+				rc.right += BackwardCompare(srcData, dstData, start, start - rc.right);
+
+				srcData += this->width;
+				dstData += this->width;
+			}
+		}
+
+		GLTexSubImage2D(GL_TEXTURE_2D, 0, rc.left << 2, rc.top, (rc.right - rc.left + 1) << 2, rc.bottom - rc.top + 1, GL_ALPHA, GL_UNSIGNED_BYTE, (DWORD*)this->primaryBuffer + rc.top * this->width + rc.left);
+	}
+
+	return found;
+}
+
+BOOL PixelBuffer32::UpdateBlock(RECT* rect)
+{
+	DWORD found = NULL;
+	RECT rc;
+
+	{
+		DWORD* srcData = (DWORD*)this->secondaryBuffer + rect->top * this->width;
+		DWORD* dstData = (DWORD*)this->primaryBuffer + rect->top * this->width;
+
+		for (LONG y = rect->top; y < rect->bottom; ++y)
+		{
+			DWORD index = ForwardCompare(srcData, dstData, rect->left, rect->right - rect->left);
+			if (index)
+			{
+				found = 1;
+				rc.left = rc.right = rect->right - index;
+			}
+
+			if (found)
+			{
+				LONG start = rect->right - 1;
+				rc.right += BackwardCompare(srcData, dstData, start, start - rc.right);
+				rc.top = rc.bottom = y;
+				break;
+			}
+
+			srcData += this->width;
+			dstData += this->width;
+		}
+	}
+
+	if (found)
+	{
+		{
+			DWORD* srcData = (DWORD*)this->secondaryBuffer + (rect->bottom - 1) * this->width;
+			DWORD* dstData = (DWORD*)this->primaryBuffer + (rect->bottom - 1) * this->width;
+
+			for (LONG y = rect->bottom - 1; y > rc.top; --y)
+			{
+				DWORD index = ForwardCompare(srcData, dstData, rect->left, rect->right - rect->left);
+				if (index)
+				{
+					found |= 2;
+
+					LONG x = rect->right - index;
+					if (rc.left > x)
+						rc.left = x;
+					else if (rc.right < x)
+						rc.right = x;
+				}
+
+				if (found & 2)
+				{
+					LONG start = rect->right - 1;
+					rc.right += BackwardCompare(srcData, dstData, start, start - rc.right);
+					rc.bottom = y;
+					break;
+				}
+
+				srcData -= this->width;
+				dstData -= this->width;
+			}
+		}
+
+		{
+			DWORD* srcData = (DWORD*)this->secondaryBuffer + (rc.top + 1) * this->width;
+			DWORD* dstData = (DWORD*)this->primaryBuffer + (rc.top + 1) * this->width;
+
+			for (LONG y = rc.top + 1; y < rc.bottom; ++y)
+			{
+				rc.left -= ForwardCompare(srcData, dstData, rect->left, rc.left - rect->left);
+
+				LONG start = rect->right - 1;
+				rc.right += BackwardCompare(srcData, dstData, start, start - rc.right);
+
+				srcData += this->width;
+				dstData += this->width;
+			}
+		}
+
+		GLTexSubImage2D(GL_TEXTURE_2D, 0, rc.left, rc.top, rc.right - rc.left + 1, rc.bottom - rc.top + 1, GL_RGBA, GL_UNSIGNED_BYTE, (DWORD*)this->primaryBuffer + rc.top * this->width + rc.left);
 	}
 
 	return found;

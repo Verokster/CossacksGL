@@ -566,6 +566,7 @@ VOID DirectDraw::RenderNew()
 	FLOAT texHeight = this->dwMode->height == maxTexSize ? 1.0f : FLOAT((FLOAT)this->dwMode->height / maxTexSize);
 
 	DWORD texPitch = this->pitch / (this->dwMode->bpp >> 3);
+	GLPixelStorei(GL_UNPACK_ROW_LENGTH, texPitch);
 
 	const CHAR* glslVersion = glVersion >= GL_VER_3_0 ? GLSL_VER_1_30 : GLSL_VER_1_10;
 
@@ -680,11 +681,171 @@ VOID DirectDraw::RenderNew()
 							GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 							GLTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, maxTexSize, maxTexSize, GL_NONE, GL_ALPHA, GL_UNSIGNED_BYTE, NULL);
 
-							PixelBuffer* pixelBuffer = new PixelBuffer(texPitch, this->dwMode->height);
+							PixelBuffer* pixelBuffer = new PixelBuffer8(texPitch, this->dwMode->height);
 							{
-								GLPixelStorei(GL_UNPACK_ROW_LENGTH, this->pitch / (this->dwMode->bpp >> 3));
+								do
 								{
-									do
+									BOOL isValid = TRUE;
+									if (config.singleThread)
+									{
+										LONGLONG qp;
+										QueryPerformanceFrequency((LARGE_INTEGER*)&qp);
+										DOUBLE timerResolution = (DOUBLE)qp;
+
+										QueryPerformanceCounter((LARGE_INTEGER*)&qp);
+										DOUBLE currTime = (DOUBLE)qp / timerResolution;
+
+										if (currTime >= nextSyncTime)
+											nextSyncTime += fpsSync * (1.0f + (FLOAT)DWORD((currTime - nextSyncTime) / fpsSync));
+										else
+											isValid = FALSE;
+									}
+									else if (isVSync != config.vSync)
+									{
+										isVSync = config.vSync;
+										if (WGLSwapInterval)
+											WGLSwapInterval(isVSync);
+									}
+
+									if (isValid)
+									{
+										if (config.fpsCounter)
+										{
+											if (isFpsChanged)
+											{
+												isFpsChanged = FALSE;
+												fpsCounter->Reset();
+											}
+
+											fpsCounter->Calculate();
+										}
+
+										BOOL force = FALSE;
+
+										if (this->CheckView())
+											force = TRUE;
+
+										if (this->isStateChanged)
+										{
+											this->isStateChanged = FALSE;
+											force = TRUE;
+											UseShaderProgram(config.windowedMode && config.filtering ? &shaders.linear : &shaders.nearest, maxTexSize);
+										}
+
+										if (this->isPalChanged)
+										{
+											this->isPalChanged = FALSE;
+											force = TRUE;
+
+											GLActiveTexture(GL_TEXTURE1);
+											GLBindTexture(GL_TEXTURE_1D, paletteId);
+											GLTexSubImage1D(GL_TEXTURE_1D, 0, 0, 256, GL_RGBA, GL_UNSIGNED_BYTE, this->palette);
+
+											GLActiveTexture(GL_TEXTURE0);
+											GLBindTexture(GL_TEXTURE_2D, indicesId);
+										}
+
+										pixelBuffer->Prepare(this->indexBuffer);
+
+										if (config.fpsCounter)
+										{
+											force = TRUE;
+
+											DWORD fps = fpsCounter->value;
+											DWORD digCount = 0;
+											DWORD current = fps;
+											do
+											{
+												++digCount;
+												current = current / 10;
+											} while (current);
+
+											DWORD slice = texPitch - FPS_WIDTH;
+											DWORD dcount = digCount;
+											current = fps;
+											do
+											{
+												WORD* lpDig = (WORD*)counters[current % 10];
+
+												BYTE* pix = (BYTE*)pixelBuffer->primaryBuffer + FPS_Y * texPitch + FPS_X + FPS_WIDTH * (dcount - 1);
+
+												DWORD height = FPS_HEIGHT;
+												do
+												{
+													WORD check = *lpDig++;
+													DWORD width = FPS_WIDTH;
+													do
+													{
+														if (check & 1)
+															*pix = 0xFF;
+
+														++pix;
+
+														check >>= 1;
+													} while (--width);
+
+													pix += slice;
+												} while (--height);
+
+												current = current / 10;
+											} while (--dcount);
+										}
+
+										if (pixelBuffer->Update() || force)
+										{
+											GLDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+											SwapBuffers(this->hDc);
+											GLFinish();
+										}
+
+										if (this->isTakeSnapshot)
+										{
+											this->isTakeSnapshot = FALSE;
+											this->TakeScreenshot();
+										}
+									}
+
+									Sleep(0);
+								} while (!this->isFinish);
+								GLFinish();
+							}
+							delete pixelBuffer;
+						}
+						GLDeleteTextures(2, textures);
+					}
+					else
+					{
+						GLuint textureId;
+						GLGenTextures(1, &textureId);
+						{
+							GLActiveTexture(GL_TEXTURE0);
+							GLBindTexture(GL_TEXTURE_2D, textureId);
+
+							GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, glCapsClampToEdge);
+							GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, glCapsClampToEdge);
+							GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+							GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+
+							GLint filter = config.windowedMode && config.filtering ? GL_LINEAR : GL_NEAREST;
+							GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+							GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+
+							GLTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, maxTexSize, maxTexSize, GL_NONE, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+
+							UseShaderProgram(&shaders.simple, maxTexSize);
+
+							PixelBuffer* pixelBuffer = new PixelBuffer32(texPitch, this->dwMode->height);
+							{
+								do
+								{
+									if (mciVideo.deviceId)
+									{
+										Sleep(1);
+
+										if (this->isTakeSnapshot)
+											this->isTakeSnapshot = FALSE;
+									}
+									else
 									{
 										BOOL isValid = TRUE;
 										if (config.singleThread)
@@ -730,20 +891,10 @@ VOID DirectDraw::RenderNew()
 											{
 												this->isStateChanged = FALSE;
 												force = TRUE;
-												UseShaderProgram(config.windowedMode && config.filtering ? &shaders.linear : &shaders.nearest, maxTexSize);
-											}
 
-											if (this->isPalChanged)
-											{
-												this->isPalChanged = FALSE;
-												force = TRUE;
-
-												GLActiveTexture(GL_TEXTURE1);
-												GLBindTexture(GL_TEXTURE_1D, paletteId);
-												GLTexSubImage1D(GL_TEXTURE_1D, 0, 0, 256, GL_RGBA, GL_UNSIGNED_BYTE, this->palette);
-
-												GLActiveTexture(GL_TEXTURE0);
-												GLBindTexture(GL_TEXTURE_2D, indicesId);
+												GLint filter = config.windowedMode && config.filtering ? GL_LINEAR : GL_NEAREST;
+												GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+												GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
 											}
 
 											pixelBuffer->Prepare(this->indexBuffer);
@@ -768,7 +919,7 @@ VOID DirectDraw::RenderNew()
 												{
 													WORD* lpDig = (WORD*)counters[current % 10];
 
-													BYTE* pix = (BYTE*)pixelBuffer->primaryBuffer + FPS_Y * texPitch + FPS_X + FPS_WIDTH * (dcount - 1);
+													DWORD* pix = (DWORD*)pixelBuffer->primaryBuffer + FPS_Y * texPitch + FPS_X + FPS_WIDTH * (dcount - 1);
 
 													DWORD height = FPS_HEIGHT;
 													do
@@ -778,7 +929,7 @@ VOID DirectDraw::RenderNew()
 														do
 														{
 															if (check & 1)
-																*pix = 0xFF;
+																*pix = 0x00FFFFFF;
 
 															++pix;
 
@@ -807,99 +958,11 @@ VOID DirectDraw::RenderNew()
 										}
 
 										Sleep(0);
-									} while (!this->isFinish);
-									GLFinish();
-								}
-								GLPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+									}
+								} while (!this->isFinish);
+								GLFinish();
 							}
 							delete pixelBuffer;
-						}
-						GLDeleteTextures(2, textures);
-					}
-					else
-					{
-						GLuint textureId;
-						GLGenTextures(1, &textureId);
-						{
-							GLActiveTexture(GL_TEXTURE0);
-							GLBindTexture(GL_TEXTURE_2D, textureId);
-
-							GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, glCapsClampToEdge);
-							GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, glCapsClampToEdge);
-							GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-							GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-
-							GLint filter = config.windowedMode && config.filtering ? GL_LINEAR : GL_NEAREST;
-							GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
-							GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
-
-							GLTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, maxTexSize, maxTexSize, GL_NONE, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-
-							UseShaderProgram(&shaders.simple, maxTexSize);
-
-							do
-							{
-								if (mciVideo.deviceId)
-								{
-									Sleep(1);
-
-									if (this->isTakeSnapshot)
-										this->isTakeSnapshot = FALSE;
-								}
-								else
-								{
-									BOOL isValid = TRUE;
-									if (config.singleThread)
-									{
-										LONGLONG qp;
-										QueryPerformanceFrequency((LARGE_INTEGER*)&qp);
-										DOUBLE timerResolution = (DOUBLE)qp;
-
-										QueryPerformanceCounter((LARGE_INTEGER*)&qp);
-										DOUBLE currTime = (DOUBLE)qp / timerResolution;
-
-										if (currTime >= nextSyncTime)
-											nextSyncTime += fpsSync * (1.0f + (FLOAT)DWORD((currTime - nextSyncTime) / fpsSync));
-										else
-											isValid = FALSE;
-									}
-									else if (isVSync != config.vSync)
-									{
-										isVSync = config.vSync;
-										if (WGLSwapInterval)
-											WGLSwapInterval(isVSync);
-									}
-
-									if (isValid)
-									{
-										this->CheckView();
-
-										if (this->isStateChanged)
-										{
-											this->isStateChanged = FALSE;
-
-											GLint filter = config.windowedMode && config.filtering ? GL_LINEAR : GL_NEAREST;
-											GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
-											GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
-										}
-
-										GLTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texPitch, this->dwMode->height, GL_RGBA, GL_UNSIGNED_BYTE, this->indexBuffer);
-
-										GLDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-										SwapBuffers(this->hDc);
-										GLFinish();
-
-										if (this->isTakeSnapshot)
-										{
-											this->isTakeSnapshot = FALSE;
-											this->TakeScreenshot();
-										}
-									}
-
-									Sleep(0);
-								}
-							} while (!this->isFinish);
-							GLFinish();
 						}
 						GLDeleteTextures(1, &textureId);
 					}

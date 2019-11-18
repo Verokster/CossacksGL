@@ -65,6 +65,11 @@ struct Viewport
 	POINTFLOAT clipFactor;
 };
 
+struct Size {
+	DWORD width;
+	DWORD height;
+};
+
 struct DisplayMode
 {
 	DWORD width;

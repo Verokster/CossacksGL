@@ -133,8 +133,6 @@ DWORD __stdcall RenderThread(LPVOID lpParameter)
 						glVersion = GL_VER_1_1;
 				}
 
-				GLPixelStorei(GL_UNPACK_ALIGNMENT, 8);
-
 				timeBeginPeriod(1);
 				{
 					SetEvent(ddraw->hCheckEvent);
@@ -681,7 +679,7 @@ VOID DirectDraw::RenderNew()
 							GLTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 							GLTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, maxTexSize, maxTexSize, GL_NONE, GL_ALPHA, GL_UNSIGNED_BYTE, NULL);
 
-							PixelBuffer* pixelBuffer = new PixelBuffer8(texPitch, this->dwMode->height);
+							PixelBuffer* pixelBuffer = new PixelBuffer(this->dwMode->width, this->dwMode->height, texPitch, FALSE);
 							{
 								do
 								{
@@ -834,7 +832,7 @@ VOID DirectDraw::RenderNew()
 
 							UseShaderProgram(&shaders.simple, maxTexSize);
 
-							PixelBuffer* pixelBuffer = new PixelBuffer32(texPitch, this->dwMode->height);
+							PixelBuffer* pixelBuffer = new PixelBuffer(this->dwMode->width, this->dwMode->height, texPitch, TRUE);
 							{
 								do
 								{

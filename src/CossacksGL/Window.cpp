@@ -43,8 +43,7 @@ namespace Window
 #pragma optimize("t", on)
 	LRESULT __stdcall KeysHook(INT nCode, WPARAM wParam, LPARAM lParam)
 	{
-		if (nCode == HC_ACTION && (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) &&
-			!config.windowedMode && !mciVideo.deviceId)
+		if (nCode == HC_ACTION && (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) && !config.windowedMode && !mciVideo.deviceId)
 		{
 			KBDLLHOOKSTRUCT* phs = (KBDLLHOOKSTRUCT*)lParam;
 			if (phs->vkCode == VK_SNAPSHOT)
@@ -261,7 +260,6 @@ namespace Window
 						ddraw->RenderStop();
 						ChangeDisplaySettings(NULL, NULL);
 					}
-
 				}
 				else
 					SetCaptureMouse((BOOL)wParam);
@@ -507,8 +505,7 @@ namespace Window
 						GetCursorPos(&p);
 						ScreenToClient(hWnd, &p);
 
-						if (p.x >= ddraw->viewport.rectangle.x && p.x < ddraw->viewport.rectangle.x + ddraw->viewport.rectangle.width &&
-							p.y >= ddraw->viewport.rectangle.y && p.y < ddraw->viewport.rectangle.y + ddraw->viewport.rectangle.height)
+						if (p.x >= ddraw->viewport.rectangle.x && p.x < ddraw->viewport.rectangle.x + ddraw->viewport.rectangle.width && p.y >= ddraw->viewport.rectangle.y && p.y < ddraw->viewport.rectangle.y + ddraw->viewport.rectangle.height)
 							SetCursor(NULL);
 						else
 							SetCursor(config.cursor);

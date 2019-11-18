@@ -27,47 +27,32 @@
 #include "Allocation.h"
 #include "ExtraTypes.h"
 
-#define BLOCK_WIDTH_8 64
-#define BLOCK_HEIGHT_8 256
-
-#define BLOCK_WIDTH_32 256
-#define BLOCK_HEIGHT_32 256
+#define BLOCK_SIZE 256
+//#define BLOCK_DEBUG
 
 class PixelBuffer : public Allocation {
-protected:
-	DWORD width;
-	DWORD height;
+private:
+	Size size;
+	Size block;
+	DWORD pitch;
 	DWORD length;
+	BOOL isTrue;
 	BOOL reset;
 
-	VOID* secondaryBuffer;
+	DWORD* secondaryBuffer;
+
+#ifdef BLOCK_DEBUG
+	VOID* tempBuffer;
+#endif
+
+	BOOL UpdateBlock(RECT*);
 
 public:
-	VOID* primaryBuffer;
+	DWORD* primaryBuffer;
 
-	PixelBuffer(DWORD, DWORD, DWORD);
+	PixelBuffer(DWORD, DWORD, DWORD, BOOL);
 	~PixelBuffer();
 
 	VOID Prepare(VOID*);
-	virtual BOOL Update() { return FALSE; };
-};
-
-class PixelBuffer8 : public PixelBuffer {
-private:
-	BOOL UpdateBlock(RECT*);
-
-public:
-	PixelBuffer8(DWORD, DWORD);
-
-	BOOL Update();
-};
-
-class PixelBuffer32 : public PixelBuffer {
-private:
-	BOOL UpdateBlock(RECT*);
-
-public:
-	PixelBuffer32(DWORD, DWORD);
-
 	BOOL Update();
 };

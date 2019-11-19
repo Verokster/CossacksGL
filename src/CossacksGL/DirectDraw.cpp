@@ -135,7 +135,7 @@ DWORD __stdcall RenderThread(LPVOID lpParameter)
 
 				timeBeginPeriod(1);
 				{
-					SetEvent(ddraw->hCheckEvent);
+					PostMessage(ddraw->hWnd, config.msgMenu, NULL, NULL);
 					if (glVersion >= GL_VER_2_0)
 						ddraw->RenderNew();
 					else
@@ -153,7 +153,7 @@ DWORD __stdcall RenderThread(LPVOID lpParameter)
 		ddraw->hDc = NULL;
 	}
 	else
-		SetEvent(ddraw->hCheckEvent);
+		PostMessage(ddraw->hWnd, config.msgMenu, NULL, NULL);
 
 	return NULL;
 }
@@ -1241,9 +1241,6 @@ VOID DirectDraw::RenderStart()
 	MemoryZero(&sAttribs, sizeof(SECURITY_ATTRIBUTES));
 	sAttribs.nLength = sizeof(SECURITY_ATTRIBUTES);
 	this->hDrawThread = CreateThread(&sAttribs, NULL, RenderThread, this, NORMAL_PRIORITY_CLASS, &threadId);
-
-	WaitForSingleObject(this->hCheckEvent, INFINITE);
-	Window::CheckMenu();
 }
 
 VOID DirectDraw::RenderStop()
@@ -1290,8 +1287,6 @@ DirectDraw::DirectDraw(IDrawUnknown** list)
 	this->isTakeSnapshot = FALSE;
 
 	MemoryZero(&this->windowPlacement, sizeof(WINDOWPLACEMENT));
-
-	this->hCheckEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 }
 
 DirectDraw::~DirectDraw()
@@ -1303,8 +1298,6 @@ DirectDraw::~DirectDraw()
 
 	if (this->palette)
 		AlignedFree(this->palette);
-
-	CloseHandle(this->hCheckEvent);
 }
 
 HRESULT DirectDraw::QueryInterface(REFIID riid, LPVOID* ppvObj)

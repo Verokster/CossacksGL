@@ -101,6 +101,7 @@ struct ConfigItems
 	HMENU menu;
 	HICON icon;
 	HFONT font;
+	UINT msgMenu;
 
 	BOOL isExist;
 	CHAR file[MAX_PATH];

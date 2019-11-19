@@ -52,6 +52,7 @@ namespace Config
 		config.font = (HFONT)CreateFont(16, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, ANSI_CHARSET,
 			OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
 			DEFAULT_PITCH | FF_DONTCARE, TEXT("MS Shell Dlg"));
+		config.msgMenu = RegisterWindowMessage(WM_CHECK_MENU);
 
 		config.singleThread = TRUE;
 		DWORD processMask, systemMask;

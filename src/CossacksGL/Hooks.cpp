@@ -605,15 +605,8 @@ namespace Hooks
 		PIMAGE_NT_HEADERS headNT = (PIMAGE_NT_HEADERS)((BYTE*)hModule + ((PIMAGE_DOS_HEADER)hModule)->e_lfanew);
 		baseOffset = (INT)hModule - (INT)headNT->OptionalHeader.ImageBase;
 
-		{
-			CHAR path[MAX_PATH];
-			GetModuleFileName(hModule, path, MAX_PATH - 1);
-			CHAR* p = StrLastChar(path, '\\');
-			StrCopy(p, "\\DDRAW.dll");
-			PatchEntryPoint(path, FakeEntryPoint);
-			StrCopy(p, "\\MDRAW.dll");
-			PatchEntryPoint(path, FakeEntryPoint);
-		}
+		PatchEntryPoint("DDRAW.dll", FakeEntryPoint);
+		PatchEntryPoint("MDRAW.dll", FakeEntryPoint);
 
 		MappedFile file = { hModule, NULL, NULL, NULL };
 		{

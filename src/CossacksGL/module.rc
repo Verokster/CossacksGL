@@ -109,8 +109,8 @@ IDR_FRAGMENT_LINEAR				RCDATA				".\\shaders\\linear.fgl"
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2019,11,19,301
- PRODUCTVERSION 2,1,8,0
+ FILEVERSION 2019,11,22,302
+ PRODUCTVERSION 2,1,9,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS VS_FF_DEBUG
@@ -126,10 +126,10 @@ BEGIN
 		BLOCK "040904b0"
 		BEGIN
 			VALUE "FileDescription", "Cossacks OpenGL wrapper"
-			VALUE "FileVersion", "2019.11.19.301"
+			VALUE "FileVersion", "2019.11.22.302"
 			VALUE "LegalCopyright", "© 2019 Verok (verokster@gmail.com)"
 			VALUE "OriginalFilename", "dplayx.dll"
-			VALUE "ProductVersion", "2.1.8"
+			VALUE "ProductVersion", "2.1.9"
 			VALUE "ProductName", "CossacksGL"
 		END
 	END

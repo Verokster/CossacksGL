@@ -73,7 +73,7 @@ DWORD __forceinline BackwardCompare(DWORD* ptr1, DWORD* ptr2, DWORD slice, DWORD
 	}
 }
 
-DWORD __forceinline ForwardCompare(DWORD* ptr1, DWORD* ptr2, DWORD slice, DWORD width, DWORD height, DWORD pitch, POINT* p)
+BOOL __forceinline ForwardCompare(DWORD* ptr1, DWORD* ptr2, DWORD slice, DWORD width, DWORD height, DWORD pitch, POINT* p)
 {
 	__asm {
 		MOV EAX, width
@@ -123,7 +123,7 @@ DWORD __forceinline ForwardCompare(DWORD* ptr1, DWORD* ptr2, DWORD slice, DWORD 
 	}
 }
 
-DWORD __forceinline BackwardCompare(DWORD* ptr1, DWORD* ptr2, DWORD slice, DWORD width, DWORD height, DWORD pitch, POINT* p)
+BOOL __forceinline BackwardCompare(DWORD* ptr1, DWORD* ptr2, DWORD slice, DWORD width, DWORD height, DWORD pitch, POINT* p)
 {
 	__asm {
 		MOV EAX, width
@@ -161,8 +161,6 @@ DWORD __forceinline BackwardCompare(DWORD* ptr1, DWORD* ptr2, DWORD slice, DWORD
 		MOV EBX, p
 		
 		MOV [EBX], ECX
-
-		DEC EDX
 		MOV [EBX+4], EDX
 
 		XOR EAX, EAX

@@ -25,253 +25,327 @@
 #include "stdafx.h"
 #include "PixelBuffer.h"
 
-DWORD __forceinline ForwardCompare(DWORD* ptr1, DWORD* ptr2, DWORD slice, DWORD count)
+DWORD __declspec(naked) __fastcall ForwardCompare(DWORD count, DWORD slice, VOID* ptr1, VOID* ptr2)
 {
 	__asm {
-		MOV ECX, count
+		push ebp
+		mov ebp, esp
+		push esi
+		push edi
 
-		MOV ESI, ptr1
-		MOV EDI, ptr2
+		mov esi, ptr1
+		mov edi, ptr2
 
-		MOV EAX, slice
-		SAL EAX, 2
+		sal edx, 2
+		add esi, edx
+		add edi, edx
 
-		ADD ESI, EAX
-		ADD EDI, EAX
-
-		REPE CMPSD
-		JZ lbl_ret
-		INC ECX
+		repe cmpsd
+		jz lbl_ret
+		inc ecx
 
 		lbl_ret:
-		MOV EAX, ECX
+		mov eax, ecx
+
+		pop edi
+		pop esi
+		mov esp, ebp
+		pop ebp
+
+		retn 8
 	}
 }
 
-DWORD __forceinline BackwardCompare(DWORD* ptr1, DWORD* ptr2, DWORD slice, DWORD count)
+DWORD __declspec(naked) __fastcall BackwardCompare(DWORD count, DWORD slice, VOID* ptr1, VOID* ptr2)
 {
 	__asm {
-		MOV ECX, count
+		push ebp
+		mov ebp, esp
+		push esi
+		push edi
 
-		MOV ESI, ptr1
-		MOV EDI, ptr2
+		mov esi, ptr1
+		mov edi, ptr2
 
-		MOV EAX, slice
-		SAL EAX, 2
+		sal edx, 2
+		add esi, edx
+		add edi, edx
 
-		ADD ESI, EAX
-		ADD EDI, EAX
-
-		STD
-		REPE CMPSD
-		CLD
-		JZ lbl_ret
-		INC ECX
+		std
+		repe cmpsd
+		cld
+		jz lbl_ret
+		inc ecx
 
 		lbl_ret:
-		MOV EAX, ECX
+		mov eax, ecx
+
+		pop edi
+		pop esi
+		mov esp, ebp
+		pop ebp
+
+		retn 8
 	}
 }
 
-BOOL __forceinline ForwardCompare(DWORD* ptr1, DWORD* ptr2, DWORD slice, DWORD width, DWORD height, DWORD pitch, POINT* p)
+BOOL __declspec(naked) __fastcall ForwardCompare(DWORD width, DWORD height, DWORD pitch, DWORD slice, VOID* ptr1, VOID* ptr2, POINT* p)
 {
 	__asm {
-		MOV EAX, width
-		MOV EDX, height
+		push ebp
+		mov ebp, esp
+		sub esp, __LOCAL_SIZE
+		push ebx
+		push esi
+		push edi
 
-		MOV EBX, pitch
-		SUB EBX, EAX
-		SAL EBX, 2
+		mov height, edx
+		mov eax, ecx
 
-		MOV ESI, ptr1
-		MOV EDI, ptr2
+		mov ebx, pitch
+		sub ebx, eax
+		sal ebx, 2
 
-		MOV ECX, slice
-		SAL ECX, 2
+		mov esi, ptr1
+		mov edi, ptr2
 
-		ADD ESI, ECX
-		ADD EDI, ECX
+		mov ecx, slice
+		sal ecx, 2
+
+		add esi, ecx
+		add edi, ecx
 
 		lbl_cycle:
-			MOV ECX, EAX
-			REPE CMPSD
-			JNE lbl_break
+			mov ecx, eax
+			repe cmpsd
+			jne lbl_break
 
-			ADD ESI, EBX
-			ADD EDI, EBX
-		DEC EDX
-		JNZ lbl_cycle
+			add esi, ebx
+			add edi, ebx
+		dec edx
+		jnz lbl_cycle
 
-		XOR EAX, EAX
-		JMP lbl_ret
+		xor eax, eax
+		jmp lbl_ret
 
 		lbl_break:
-		MOV EBX, p
+		mov ebx, p
 		
-		INC ECX
-		SUB EAX, ECX
-		MOV [EBX], EAX
+		inc ecx
+		sub eax, ecx
+		mov [ebx], eax
 
-		MOV EAX, height
-		SUB EAX, EDX
-		MOV [EBX+4], EAX
+		mov eax, height
+		sub eax, edx
+		mov [ebx+4], eax
 
-		XOR EAX, EAX
-		INC EAX
+		xor eax, eax
+		inc eax
 
 		lbl_ret:
+		pop edi
+		pop esi
+		pop ebx
+		mov esp, ebp
+		pop ebp
+
+		retn 20
 	}
 }
 
-BOOL __forceinline BackwardCompare(DWORD* ptr1, DWORD* ptr2, DWORD slice, DWORD width, DWORD height, DWORD pitch, POINT* p)
+BOOL __declspec(naked) __fastcall BackwardCompare(DWORD width, DWORD height, DWORD pitch, DWORD slice, VOID* ptr1, VOID* ptr2, POINT* p)
 {
 	__asm {
-		MOV EAX, width
-		MOV EDX, height
+		push ebp
+		mov ebp, esp
+		push ebx
+		push esi
+		push edi
 
-		MOV EBX, pitch
-		SUB EBX, EAX
-		SAL EBX, 2
+		mov eax, ecx
 
-		MOV ESI, ptr1
-		MOV EDI, ptr2
+		mov ebx, pitch
+		sub ebx, eax
+		sal ebx, 2
 
-		MOV ECX, slice
-		SAL ECX, 2
+		mov esi, ptr1
+		mov edi, ptr2
 
-		ADD ESI, ECX
-		ADD EDI, ECX
+		mov ecx, slice
+		sal ecx, 2
 
-		STD
+		add esi, ecx
+		add edi, ecx
+
+		std
 
 		lbl_cycle:
-			MOV ECX, EAX
-			REPE CMPSD
-			JNZ lbl_break
+			mov ecx, eax
+			repe cmpsd
+			jnz lbl_break
 
-			SUB ESI, EBX
-			SUB EDI, EBX
-		DEC EDX
-		JNZ lbl_cycle
+			sub esi, ebx
+			sub edi, ebx
+		dec edx
+		jnz lbl_cycle
 
-		XOR EAX, EAX
-		JMP lbl_ret
+		xor eax, eax
+		jmp lbl_ret
 
 		lbl_break:
-		MOV EBX, p
+		mov ebx, p
 		
-		MOV [EBX], ECX
-		MOV [EBX+4], EDX
+		mov [ebx], ecx
 
-		XOR EAX, EAX
-		INC EAX
+		dec edx
+		mov [ebx+4], edx
+
+		xor eax, eax
+		inc eax
 
 		lbl_ret:
-		CLD
+		cld
+		pop edi
+		pop esi
+		pop ebx
+		mov esp, ebp
+		pop ebp
+
+		retn 20
 	}
 }
 
-DWORD __forceinline ForwardCompare(DWORD* ptr1, DWORD* ptr2, DWORD slice, DWORD width, DWORD height, DWORD pitch)
+DWORD __declspec(naked) __fastcall ForwardCompare(DWORD width, DWORD height, DWORD pitch, DWORD slice, VOID* ptr1, VOID* ptr2)
 {
 	__asm {
-		MOV EAX, width
-		MOV EDX, height
+		push ebp
+		mov ebp, esp
+		sub esp, __LOCAL_SIZE
+		push ebx
+		push esi
+		push edi
 
-		MOV EBX, pitch
-		SUB EBX, EAX
-		SAL EBX, 2
+		mov width, ecx
+		mov eax, ecx
 
-		MOV ESI, ptr1
-		MOV EDI, ptr2
+		mov ebx, pitch
+		sub ebx, eax
+		sal ebx, 2
 
-		MOV ECX, slice
-		SAL ECX, 2
+		mov esi, ptr1
+		mov edi, ptr2
 
-		ADD ESI, ECX
-		ADD EDI, ECX
+		mov ecx, slice
+		sal ecx, 2
+
+		add esi, ecx
+		add edi, ecx
 
 		lbl_cycle:
-			MOV ECX, EAX
-			REPE CMPSD
-			JZ lbl_inc
+			mov ecx, eax
+			repe cmpsd
+			jz lbl_inc
 			
-			SUB EAX, ECX
-			DEC EAX
-			JZ lbl_ret
+			sub eax, ecx
+			dec eax
+			jz lbl_ret
 
-			SAL ECX, 2
-			ADD EBX, ECX
-			ADD ESI, EBX
-			ADD EDI, EBX
-			ADD EBX, 4
-			JMP lbl_cont
+			sal ecx, 2
+			add ebx, ecx
+			add esi, ebx
+			add edi, ebx
+			add ebx, 4
+			jmp lbl_cont
 
 			lbl_inc:
-			ADD ESI, EBX
-			ADD EDI, EBX
+			add esi, ebx
+			add edi, ebx
 			
 			lbl_cont:
-		DEC EDX
-		JNZ lbl_cycle
+		dec edx
+		jnz lbl_cycle
 
 		lbl_ret:
-		MOV ECX, width
-		SUB ECX, EAX
-		MOV EAX, ECX
+		mov ecx, width
+		sub ecx, eax
+		mov eax, ecx
+
+		pop edi
+		pop esi
+		pop ebx
+		mov esp, ebp
+		pop ebp
+
+		retn 16
 	}
 }
 
-DWORD __forceinline BackwardCompare(DWORD* ptr1, DWORD* ptr2, DWORD slice, DWORD width, DWORD height, DWORD pitch)
+DWORD __declspec(naked) __fastcall BackwardCompare(DWORD width, DWORD height, DWORD pitch, DWORD slice, VOID* ptr1, VOID* ptr2)
 {
 	__asm {
-		MOV EAX, width
-		MOV EDX, height
+		push ebp
+		mov ebp, esp
+		sub esp, __LOCAL_SIZE
+		push ebx
+		push esi
+		push edi
 
-		MOV EBX, pitch
-		SUB EBX, EAX
-		SAL EBX, 2
+		mov width, ecx
+		mov eax, ecx
 
-		MOV ESI, ptr1
-		MOV EDI, ptr2
+		mov ebx, pitch
+		sub ebx, eax
+		sal ebx, 2
 
-		MOV ECX, slice
-		SAL ECX, 2
+		mov esi, ptr1
+		mov edi, ptr2
 
-		ADD ESI, ECX
-		ADD EDI, ECX
+		mov ecx, slice
+		sal ecx, 2
 
-		STD
+		add esi, ecx
+		add edi, ecx
+
+		std
 
 		lbl_cycle:
-			MOV ECX, EAX
-			REPE CMPSD
-			JZ lbl_inc
+			mov ecx, eax
+			repe cmpsd
+			jz lbl_inc
 			
-			SUB EAX, ECX
-			DEC EAX
-			JZ lbl_ret
+			sub eax, ecx
+			dec eax
+			jz lbl_ret
 
-			SAL ECX, 2
-			ADD EBX, ECX
-			SUB ESI, EBX
-			SUB EDI, EBX
-			ADD EBX, 4
-			JMP lbl_cont
+			sal ecx, 2
+			add ebx, ecx
+			sub esi, ebx
+			sub edi, ebx
+			add ebx, 4
+			jmp lbl_cont
 
 			lbl_inc:
-			SUB ESI, EBX
-			SUB EDI, EBX
+			sub esi, ebx
+			sub edi, ebx
 			
 			lbl_cont:
-		DEC EDX
-		JNZ lbl_cycle
+		dec edx
+		jnz lbl_cycle
 
 		lbl_ret:
-		MOV ECX, width
-		SUB ECX, EAX
-		MOV EAX, ECX
+		mov ecx, width
+		sub ecx, eax
+		mov eax, ecx
 
-		CLD
+		cld
+
+		pop edi
+		pop esi
+		pop ebx
+		mov esp, ebp
+		pop ebp
+
+		retn 16
 	}
 }
 
@@ -336,9 +410,10 @@ BOOL PixelBuffer::Update()
 	}
 	else
 	{
+		DWORD left, right;
 		DWORD size = this->pitch * this->size.height;
-		DWORD index = ForwardCompare((DWORD*)this->secondaryBuffer, (DWORD*)this->primaryBuffer, 0, size);
-		if (index)
+		if ((left = ForwardCompare(size, 0, (DWORD*)this->primaryBuffer, (DWORD*)this->secondaryBuffer))
+			&& (right = BackwardCompare(size, size - 1, (DWORD*)this->primaryBuffer, (DWORD*)this->secondaryBuffer)))
 		{
 #ifdef BLOCK_DEBUG
 			if (!this->isTrue)
@@ -347,14 +422,16 @@ BOOL PixelBuffer::Update()
 				GLTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, this->size.width, this->size.height, GL_RGBA, GL_UNSIGNED_BYTE, this->tempBuffer);
 #endif
 
-			DWORD top = (size - index) / this->pitch;
-			for (DWORD y = top; y < this->size.height; y += this->block.height)
+			DWORD top = (size - left) / this->pitch;
+			DWORD bottom = (right - 1) / this->pitch + 1;
+			for (DWORD y = top; y < bottom; y += this->block.height)
 			{
 				RECT rc;
 				rc.top = *(LONG*)&y;
 				rc.bottom = rc.top + this->block.height;
-				if (rc.bottom > *(LONG*)&this->size.height)
-					rc.bottom = *(LONG*)&this->size.height;
+				if (rc.bottom > *(LONG*)&bottom)
+					rc.bottom = *(LONG*)&bottom;
+				--rc.bottom;
 
 				for (DWORD x = 0; x < this->size.width; x += this->block.width)
 				{
@@ -362,6 +439,7 @@ BOOL PixelBuffer::Update()
 					rc.right = rc.left + this->block.width;
 					if (rc.right > *(LONG*)&this->size.width)
 						rc.right = *(LONG*)&this->size.width;
+					--rc.right;
 
 					this->UpdateBlock(&rc);
 				}
@@ -384,13 +462,13 @@ BOOL PixelBuffer::Update()
 BOOL PixelBuffer::UpdateBlock(RECT* rect)
 {
 	RECT rc;
-	Size size = { rect->right - rect->left, rect->bottom - rect->top };
-	if (ForwardCompare(this->primaryBuffer, this->secondaryBuffer,
+	Size size = { rect->right - rect->left + 1, rect->bottom - rect->top + 1 };
+	if (ForwardCompare(size.width, size.height, this->pitch,
 			rect->top * this->pitch + rect->left,
-			size.width, size.height, this->pitch, (POINT*)&rc.left)
-		&& BackwardCompare(this->primaryBuffer, this->secondaryBuffer,
-			(rect->bottom - 1) * this->pitch + (rect->right - 1),
-			size.width, size.height, this->pitch, (POINT*)&rc.right))
+			this->primaryBuffer, this->secondaryBuffer, (POINT*)&rc.left)
+		&& BackwardCompare(size.width, size.height, this->pitch,
+			rect->bottom * this->pitch + rect->right,
+			this->primaryBuffer, this->secondaryBuffer, (POINT*)&rc.right))
 	{
 		if (rc.left > rc.right)
 		{
@@ -404,24 +482,24 @@ BOOL PixelBuffer::UpdateBlock(RECT* rect)
 		rc.top += rect->top;
 		rc.bottom += rect->top;
 
-		if (rc.bottom != rc.top)
+		LONG height = rc.bottom - rc.top;
+		if (height > 1)
 		{
 			if (rc.left != rect->left)
-				rc.left -= ForwardCompare(this->primaryBuffer, this->secondaryBuffer,
+				rc.left -= ForwardCompare(rc.left - rect->left, height, this->pitch,
 					(rc.top + 1) * this->pitch + rect->left,
-					rc.left - rect->left, rc.bottom - rc.top, this->pitch);
+					this->primaryBuffer, this->secondaryBuffer);
 
-			if (rc.right != (rect->right - 1))
-				rc.right += BackwardCompare(this->primaryBuffer, this->secondaryBuffer,
-								(rc.bottom - 1) * this->pitch + (rect->right - 1),
-								rect->right - rc.right, rc.bottom - rc.top, this->pitch)
-					- 1;
+			if (rc.right != rect->right)
+				rc.right += BackwardCompare(rect->right - rc.right, height, this->pitch,
+					(rc.bottom - 1) * this->pitch + rect->right,
+					this->primaryBuffer, this->secondaryBuffer);
 		}
 
 		if (!this->isTrue)
-			GLTexSubImage2D(GL_TEXTURE_2D, 0, rc.left << 2, rc.top, (rc.right - rc.left + 1) << 2, rc.bottom - rc.top + 1, GL_ALPHA, GL_UNSIGNED_BYTE, this->primaryBuffer + rc.top * this->pitch + rc.left);
+			GLTexSubImage2D(GL_TEXTURE_2D, 0, rc.left << 2, rc.top, (rc.right - rc.left + 1) << 2, height + 1, GL_ALPHA, GL_UNSIGNED_BYTE, this->primaryBuffer + rc.top * this->pitch + rc.left);
 		else
-			GLTexSubImage2D(GL_TEXTURE_2D, 0, rc.left, rc.top, rc.right - rc.left + 1, rc.bottom - rc.top + 1, GL_RGBA, GL_UNSIGNED_BYTE, this->primaryBuffer + rc.top * this->pitch + rc.left);
+			GLTexSubImage2D(GL_TEXTURE_2D, 0, rc.left, rc.top, rc.right - rc.left + 1, height + 1, GL_RGBA, GL_UNSIGNED_BYTE, this->primaryBuffer + rc.top * this->pitch + rc.left);
 
 		return TRUE;
 	}

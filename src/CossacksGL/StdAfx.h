@@ -1,7 +1,7 @@
 /*
 	MIT License
 
-	Copyright (c) 2019 Oleksiy Ryabchun
+	Copyright (c) 2020 Oleksiy Ryabchun
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy
 	of this software and associated documentation files (the "Software"), to deal
@@ -57,6 +57,8 @@ extern DEACTIVATEACTCTX DeactivateActCtxC;
 typedef HRESULT(__stdcall *SETPROCESSDPIAWARENESS)(PROCESS_DPI_AWARENESS);
 
 extern SETPROCESSDPIAWARENESS SetProcessDpiAwarenessC;
+
+extern DWORD pGdwDPlaySPRefCount;
 
 #ifndef _FILE_DEFINED
 #define _FILE_DEFINED

@@ -1,7 +1,7 @@
 /*
 	MIT License
 
-	Copyright (c) 2019 Oleksiy Ryabchun
+	Copyright (c) 2020 Oleksiy Ryabchun
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy
 	of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@
 #include "Main.h"
 #include "Config.h"
 #include "Window.h"
+#include "MappedFile.h"
 
 MciVideo mciVideo;
 MCIDEVICEID mciList[16];
@@ -168,25 +169,9 @@ namespace Hooks
 					nameThunk = (PIMAGE_THUNK_DATA)(base + imports->OriginalFirstThunk);
 				else
 				{
-					if (!file->hFile)
-					{
-						CHAR filePath[MAX_PATH];
-						GetModuleFileName(file->hModule, filePath, MAX_PATH);
-						file->hFile = CreateFile(filePath, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-						if (!file->hFile)
-							return res;
-					}
-
-					if (!file->hMap)
-					{
-						file->hMap = CreateFileMapping(file->hFile, NULL, PAGE_READONLY, 0, 0, NULL);
-						if (!file->hMap)
-							return res;
-					}
-
 					if (!file->address)
 					{
-						file->address = MapViewOfFile(file->hMap, FILE_MAP_READ, 0, 0, 0);
+						file->Load();
 						if (!file->address)
 							return res;
 					}
@@ -608,41 +593,43 @@ namespace Hooks
 		PatchEntryPoint("DDRAW.dll", FakeEntryPoint);
 		PatchEntryPoint("MDRAW.dll", FakeEntryPoint);
 
-		MappedFile file = { hModule, NULL, NULL, NULL };
+		HMODULE hLib = LoadLibrary("DPWSOCKX.dll");
+		if (hLib)
 		{
-			PatchFunction(&file, "DirectDrawCreate", Main::DirectDrawCreate);
-
-			PatchFunction(&file, "LoadLibraryA", LoadLibraryHook);
-			PatchFunction(&file, "FreeLibrary", FreeLibraryHook);
-			PatchFunction(&file, "GetProcAddress", GetProcAddressHook);
-
-			PatchFunction(&file, "RegisterClassA", RegisterClassHook);
-			PatchFunction(&file, "CreateWindowExA", CreateWindowExHook);
-
-			PatchFunction(&file, "ClipCursor", ClipCursorHook);
-			PatchFunction(&file, "ShowCursor", ShowCursorHook);
-			PatchFunction(&file, "SetCursor", SetCursorHook);
-			PatchFunction(&file, "SetCursorPos", SetCursorPosHook);
-
-			PatchFunction(&file, "MessageBoxA", MessageBoxHook);
-			PatchFunction(&file, "ClientToScreen", ClientToScreenHook);
-
-			PatchFunction(&file, "PeekMessageA", PeekMessageHook);
-			PatchFunction(&file, "GetTickCount", timeGetTime);
-
-			MciSendCommandOld = (MCISENDCOMMANDA)PatchFunction(&file, "mciSendCommandA", mciSendCommandHook);
-			MciGetErrorStringOld = (MCIGETERRORSTRINGA)PatchFunction(&file, "mciGetErrorStringA", mciGetErrorStringHook);
+			MappedFile* file = new MappedFile(hLib);
+			{
+				Hooks::PatchFunction(file, "gdwDPlaySPRefCount", (VOID*)pGdwDPlaySPRefCount);
+			}
+			delete file;
 		}
 
-		if (file.address)
-			UnmapViewOfFile(file.address);
+		MappedFile* file = new MappedFile(hModule);
+		{
+			PatchFunction(file, "DirectDrawCreate", Main::DirectDrawCreate);
 
-		if (file.hMap)
-			CloseHandle(file.hMap);
+			PatchFunction(file, "LoadLibraryA", LoadLibraryHook);
+			PatchFunction(file, "FreeLibrary", FreeLibraryHook);
+			PatchFunction(file, "GetProcAddress", GetProcAddressHook);
 
-		if (file.hFile)
-			CloseHandle(file.hFile);
+			PatchFunction(file, "RegisterClassA", RegisterClassHook);
+			PatchFunction(file, "CreateWindowExA", CreateWindowExHook);
 
+			PatchFunction(file, "ClipCursor", ClipCursorHook);
+			PatchFunction(file, "ShowCursor", ShowCursorHook);
+			PatchFunction(file, "SetCursor", SetCursorHook);
+			PatchFunction(file, "SetCursorPos", SetCursorPosHook);
+
+			PatchFunction(file, "MessageBoxA", MessageBoxHook);
+			PatchFunction(file, "ClientToScreen", ClientToScreenHook);
+
+			PatchFunction(file, "PeekMessageA", PeekMessageHook);
+			PatchFunction(file, "GetTickCount", timeGetTime);
+
+			MciSendCommandOld = (MCISENDCOMMANDA)PatchFunction(file, "mciSendCommandA", mciSendCommandHook);
+			MciGetErrorStringOld = (MCIGETERRORSTRINGA)PatchFunction(file, "mciGetErrorStringA", mciGetErrorStringHook);
+		}
+		delete file;
+		
 		// Flip Page
 		const BYTE flipBlock[] = { 0x8B, 0x4D, 0xCC, 0xF3, 0xA5, 0x03, 0x75, 0xD0, 0x03, 0x7D, 0xD4, 0x48 };
 		DWORD address = FindCodeBlockAddress((BYTE*)flipBlock, sizeof(flipBlock));

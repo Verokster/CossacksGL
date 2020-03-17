@@ -22,41 +22,21 @@
 	SOFTWARE.
 */
 
-uniform sampler2D tex01;
-uniform sampler1D pal01;
-uniform vec2 texSize;
+#pragma once
 
-#if __VERSION__ >= 130
-	#define COMPAT_IN in
-	#define COMPAT_TEXTURE_1D texture
-	#define COMPAT_TEXTURE_2D texture
-	out vec4 FRAG_COLOR;
-#else
-	#define COMPAT_IN varying 
-	#define COMPAT_TEXTURE_1D texture1D
-	#define COMPAT_TEXTURE_2D texture2D
-	#define FRAG_COLOR gl_FragColor
-#endif
+#include "Allocation.h"
 
-COMPAT_IN vec2 fTex;
+class MappedFile : public Allocation {
+private:
+	HANDLE hFile;
+	HANDLE hMap;
 
-float smr(float x) {
-	return x * x * (3.0 - 2.0 * x);
-}
+public:
+	HMODULE hModule;
+	VOID* address;
 
-void main() {
-	vec2 texel = floor(fTex);
-	
-	#define TEX(x, y) COMPAT_TEXTURE_1D(pal01, COMPAT_TEXTURE_2D(tex01, (texel + 0.5 + vec2(x, y)) / texSize).a).rgb
+	MappedFile(HMODULE hModule);
+	~MappedFile();
 
-	vec2 phase = fTex - texel;
-	phase.x = smr(phase.x);
-	phase.y = smr(phase.y);
-
-	vec3 color = mix(
-		mix(TEX(0.0, 0.0), TEX(1.0, 0.0), phase.x),
-		mix(TEX(0.0, 1.0), TEX(1.0, 1.0), phase.x),
-		phase.y);
-		
-	FRAG_COLOR = vec4(color, 1.0);
-}
+	VOID Load();
+};

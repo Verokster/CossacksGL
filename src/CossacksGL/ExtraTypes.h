@@ -1,7 +1,7 @@
 /*
 	MIT License
 
-	Copyright (c) 2019 Oleksiy Ryabchun
+	Copyright (c) 2020 Oleksiy Ryabchun
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy
 	of this software and associated documentation files (the "Software"), to deal
@@ -86,16 +86,23 @@ struct ShaderProgram
 	DWORD fragmentName;
 };
 
+enum UpdateMode
+{
+	UpdateNone = 0,
+	UpdateCPP = 1,
+	UpdateASM = 2
+};
+
 struct ConfigItems
 {
 	BOOL windowedMode;
-	BOOL fpsCounter;
 	BOOL filtering;
 	BOOL aspectRatio;
 	BOOL mouseCapture;
 	BOOL vSync;
 	BOOL singleThread;
 	BOOL singleWindow;
+	UpdateMode updateMode;
 
 	HCURSOR cursor;
 	HMENU menu;
@@ -111,12 +118,4 @@ struct MciVideo {
 	MCIDEVICEID deviceId;
 	MCIERROR error;
 	SIZE size;
-};
-
-struct MappedFile
-{
-	HMODULE hModule;
-	HANDLE hFile;
-	HANDLE hMap;
-	VOID* address;
 };

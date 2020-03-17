@@ -1,7 +1,7 @@
 /*
 	MIT License
 
-	Copyright (c) 2019 Oleksiy Ryabchun
+	Copyright (c) 2020 Oleksiy Ryabchun
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy
 	of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,6 @@
 #include "Config.h"
 #include "Main.h"
 #include "Hooks.h"
-#include "FpsCounter.h"
 
 #define MIN_WIDTH 240
 #define MIN_HEIGHT 180
@@ -91,8 +90,7 @@ namespace Window
 	{
 		switch (uMsg)
 		{
-		case WM_INITDIALOG:
-		{
+		case WM_INITDIALOG: {
 			SetWindowLong(hDlg, GWL_EXSTYLE, NULL);
 			EnumChildWindows(hDlg, EnumChildProc, NULL);
 
@@ -125,40 +123,59 @@ namespace Window
 				MemoryFree(verData);
 			}
 
-			if (GetDlgItemText(hDlg, IDC_LNK_EMAIL, temp, sizeof(temp)))
+			if (GetDlgItemText(hDlg, IDC_COPYRIGHT, temp, sizeof(temp)))
 			{
-				StrPrint(path, "<A HREF=\"mailto:%s\">%s</A>", temp, temp);
+				StrPrint(path, temp, 2020, "Verok");
+				SetDlgItemText(hDlg, IDC_COPYRIGHT, path);
+			}
+
+			if (lParam == IDD_ABOUT)
+			{
+				StrPrint(path, "<A HREF=\"mailto:%s\">%s</A>", "verokster@gmail.com", "verokster@gmail.com");
 				SetDlgItemText(hDlg, IDC_LNK_EMAIL, path);
+
+				StrPrint(path, "<A HREF=\"%s\">%s</A>", "https://verokster.blogspot.com/2018/05/cossacks-american-conquest-gl-wrapper.html", "https://verokster.blogspot.com");
+				SetDlgItemText(hDlg, IDC_LNK_WEB, path);
+
+				StrPrint(path, "<A HREF=\"%s\">%s</A>", "https://www.patreon.com/join/verok", "https://www.patreon.com/join/verok");
+				SetDlgItemText(hDlg, IDC_LNK_PATRON, path);
 			}
-
-			break;
-		}
-
-		case WM_NOTIFY:
-		{
-			if (((NMHDR*)lParam)->code == NM_CLICK && wParam == IDC_LNK_EMAIL)
+			else
 			{
-				NMLINK* pNMLink = (NMLINK*)lParam;
-				LITEM iItem = pNMLink->item;
-
-				CHAR url[MAX_PATH];
-				StrToAnsi(url, pNMLink->item.szUrl, sizeof(url) - 1);
-
-				SHELLEXECUTEINFO shExecInfo;
-				MemoryZero(&shExecInfo, sizeof(SHELLEXECUTEINFO));
-				shExecInfo.cbSize = sizeof(SHELLEXECUTEINFO);
-				shExecInfo.fMask = SEE_MASK_NOCLOSEPROCESS;
-				shExecInfo.lpFile = url;
-				shExecInfo.nShow = SW_SHOW;
-
-				ShellExecuteEx(&shExecInfo);
+				SetDlgItemText(hDlg, IDC_LNK_EMAIL, "verokster@gmail.com");
+				SetDlgItemText(hDlg, IDC_LNK_WEB, "https://verokster.blogspot.com");
+				SetDlgItemText(hDlg, IDC_LNK_PATRON, "https://www.patreon.com/join/verok");
 			}
 
 			break;
 		}
 
-		case WM_COMMAND:
-		{
+		case WM_NOTIFY: {
+			if (((NMHDR*)lParam)->code == NM_CLICK)
+			{
+				switch (wParam)
+				{
+				case IDC_LNK_EMAIL:
+				case IDC_LNK_WEB:
+				case IDC_LNK_PATRON:
+					SHELLEXECUTEINFOW shExecInfo;
+					MemoryZero(&shExecInfo, sizeof(SHELLEXECUTEINFOW));
+					shExecInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
+					shExecInfo.fMask = SEE_MASK_NOCLOSEPROCESS;
+					shExecInfo.lpFile = ((NMLINK*)lParam)->item.szUrl;
+					shExecInfo.nShow = SW_SHOW;
+					ShellExecuteExW(&shExecInfo);
+					break;
+
+				default:
+					break;
+				}
+			}
+
+			break;
+		}
+
+		case WM_COMMAND: {
 			if (wParam == IDOK)
 				EndDialog(hDlg, TRUE);
 			break;
@@ -175,8 +192,7 @@ namespace Window
 	{
 		switch (uMsg)
 		{
-		case WM_GETMINMAXINFO:
-		{
+		case WM_GETMINMAXINFO: {
 			if (config.windowedMode)
 			{
 				RECT rect = { 0, 0, MIN_WIDTH, MIN_HEIGHT };
@@ -196,8 +212,7 @@ namespace Window
 			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
 		}
 
-		case WM_SIZE:
-		{
+		case WM_SIZE: {
 			DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
 			if (ddraw)
 			{
@@ -223,8 +238,7 @@ namespace Window
 			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
 		}
 
-		case WM_DISPLAYCHANGE:
-		{
+		case WM_DISPLAYCHANGE: {
 			DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
 			if (ddraw)
 			{
@@ -243,8 +257,7 @@ namespace Window
 		case WM_NCACTIVATE:
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
 
-		case WM_ACTIVATEAPP:
-		{
+		case WM_ACTIVATEAPP: {
 			DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
 			if (ddraw && ddraw->dwMode)
 			{
@@ -268,12 +281,10 @@ namespace Window
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
 		}
 
-		case WM_COMMAND:
-		{
+		case WM_COMMAND: {
 			switch (wParam)
 			{
-			case IDM_WINDOW_FULLSCREEN:
-			{
+			case IDM_WINDOW_FULLSCREEN: {
 				DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
 				if (ddraw && ddraw->dwMode)
 				{
@@ -294,8 +305,7 @@ namespace Window
 				return NULL;
 			}
 
-			case IDM_WINDOW_VSYNC:
-			{
+			case IDM_WINDOW_VSYNC: {
 				config.vSync = !config.vSync;
 				Config::Set(CONFIG, "VSync", config.vSync);
 				CheckMenu();
@@ -303,18 +313,7 @@ namespace Window
 				return NULL;
 			}
 
-			case IDM_WINDOW_FPSCOUNTER:
-			{
-				config.fpsCounter = !config.fpsCounter;
-				Config::Set(CONFIG, "FpsCounter", config.fpsCounter);
-				CheckMenu();
-				isFpsChanged = TRUE;
-
-				return NULL;
-			}
-
-			case IDM_WINDOW_MOUSECAPTURE:
-			{
+			case IDM_WINDOW_MOUSECAPTURE: {
 				config.mouseCapture = !config.mouseCapture;
 				Config::Set(CONFIG, "MouseCapture", config.mouseCapture);
 				CheckMenu();
@@ -323,14 +322,12 @@ namespace Window
 				return NULL;
 			}
 
-			case IDM_WINDOW_EXIT:
-			{
+			case IDM_WINDOW_EXIT: {
 				SendMessage(hWnd, WM_CLOSE, NULL, NULL);
 				return NULL;
 			}
 
-			case IDM_IMAGE_FILTERING:
-			{
+			case IDM_IMAGE_FILTERING: {
 				config.filtering = !config.filtering;
 				Config::Set(CONFIG, "Filtering", config.filtering);
 				CheckMenu();
@@ -342,8 +339,7 @@ namespace Window
 				return NULL;
 			}
 
-			case IDM_IMAGE_ASPECTRATIO:
-			{
+			case IDM_IMAGE_ASPECTRATIO: {
 				config.aspectRatio = !config.aspectRatio;
 				Config::Set(CONFIG, "AspectRatio", config.aspectRatio);
 				CheckMenu();
@@ -365,14 +361,14 @@ namespace Window
 				return NULL;
 			}
 
-			case IDM_HELP_ABOUT:
-			{
+			case IDM_HELP_ABOUT: {
 				INT_PTR res;
 				ULONG_PTR cookie = NULL;
 				if (hActCtx && hActCtx != INVALID_HANDLE_VALUE && !ActivateActCtxC(hActCtx, &cookie))
 					cookie = NULL;
 
-				res = DialogBoxParam(hDllModule, cookie ? MAKEINTRESOURCE(IDD_ABOUT) : MAKEINTRESOURCE(IDD_ABOUT_OLD), hWnd, (DLGPROC)AboutProc, NULL);
+				LPARAM id = cookie ? IDD_ABOUT : IDD_ABOUT_OLD;
+				res = DialogBoxParam(hDllModule, MAKEINTRESOURCE(id), hWnd, (DLGPROC)AboutProc, id);
 
 				if (cookie)
 					DeactivateActCtxC(0, cookie);
@@ -387,14 +383,11 @@ namespace Window
 		}
 
 		case WM_KEYDOWN:
-		case WM_SYSKEYDOWN:
-		{
+		case WM_SYSKEYDOWN: {
 			if (HIWORD(lParam) & KF_ALTDOWN)
 			{
 				if (wParam == 'W')
 					WindowProc(hWnd, WM_COMMAND, IDM_WINDOW_FULLSCREEN, NULL);
-				else if (wParam == 'F')
-					WindowProc(hWnd, WM_COMMAND, IDM_WINDOW_FPSCOUNTER, NULL);
 				else if (wParam == 'M')
 					WindowProc(hWnd, WM_COMMAND, IDM_WINDOW_MOUSECAPTURE, NULL);
 				else if (wParam == VK_F4)
@@ -406,8 +399,7 @@ namespace Window
 			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
 		}
 
-		case WM_MOUSEMOVE:
-		{
+		case WM_MOUSEMOVE: {
 			DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
 			if (ddraw)
 				ddraw->ScaleMouse(uMsg, &lParam);
@@ -415,8 +407,7 @@ namespace Window
 			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
 		}
 
-		case WM_LBUTTONDOWN:
-		{
+		case WM_LBUTTONDOWN: {
 			DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
 			if (ddraw)
 			{
@@ -427,8 +418,7 @@ namespace Window
 			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
 		}
 
-		case WM_RBUTTONDOWN:
-		{
+		case WM_RBUTTONDOWN: {
 			DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
 			if (ddraw)
 			{
@@ -439,8 +429,7 @@ namespace Window
 			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
 		}
 
-		case WM_MBUTTONDOWN:
-		{
+		case WM_MBUTTONDOWN: {
 			DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
 			if (ddraw)
 			{
@@ -451,8 +440,7 @@ namespace Window
 			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
 		}
 
-		case WM_LBUTTONUP:
-		{
+		case WM_LBUTTONUP: {
 			DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
 			if (ddraw)
 			{
@@ -463,8 +451,7 @@ namespace Window
 			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
 		}
 
-		case WM_RBUTTONUP:
-		{
+		case WM_RBUTTONUP: {
 			DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
 			if (ddraw)
 			{
@@ -475,8 +462,7 @@ namespace Window
 			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
 		}
 
-		case WM_MBUTTONUP:
-		{
+		case WM_MBUTTONUP: {
 			DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
 			if (ddraw)
 			{
@@ -487,8 +473,7 @@ namespace Window
 			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
 		}
 
-		case WM_SETCURSOR:
-		{
+		case WM_SETCURSOR: {
 			if (LOWORD(lParam) == HTCLIENT)
 			{
 				if (!config.windowedMode || !config.aspectRatio)
@@ -517,8 +502,7 @@ namespace Window
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
 		}
 
-		case MM_MCINOTIFY:
-		{
+		case MM_MCINOTIFY: {
 			MCIDEVICEID mciId = (MCIDEVICEID)lParam;
 
 			DWORD check = 16;
@@ -585,7 +569,6 @@ namespace Window
 		EnableMenuItem(config.menu, IDM_WINDOW_VSYNC, MF_BYCOMMAND | (glVersion && !config.singleThread && WGLSwapInterval ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)));
 		CheckMenuItem(config.menu, IDM_WINDOW_VSYNC, MF_BYCOMMAND | (glVersion && !config.singleThread && WGLSwapInterval && config.vSync ? MF_CHECKED : MF_UNCHECKED));
 
-		CheckMenuItem(config.menu, IDM_WINDOW_FPSCOUNTER, MF_BYCOMMAND | (config.fpsCounter ? MF_CHECKED : MF_UNCHECKED));
 		CheckMenuItem(config.menu, IDM_WINDOW_MOUSECAPTURE, MF_BYCOMMAND | (config.mouseCapture ? MF_CHECKED : MF_UNCHECKED));
 		CheckMenuItem(config.menu, IDM_IMAGE_FILTERING, MF_BYCOMMAND | (config.filtering ? MF_CHECKED : MF_UNCHECKED));
 		CheckMenuItem(config.menu, IDM_IMAGE_ASPECTRATIO, MF_BYCOMMAND | (config.aspectRatio ? MF_CHECKED : MF_UNCHECKED));

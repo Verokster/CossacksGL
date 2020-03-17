@@ -1,7 +1,7 @@
 /*
 	MIT License
 
-	Copyright (c) 2019 Oleksiy Ryabchun
+	Copyright (c) 2020 Oleksiy Ryabchun
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy
 	of this software and associated documentation files (the "Software"), to deal
@@ -22,41 +22,43 @@
 	SOFTWARE.
 */
 
-#pragma once
-#define FPS_X 3
-#define FPS_Y 5
-#define FPS_WIDTH 16
-#define FPS_HEIGHT 24
-#define FPS_COUNT 120
-#define FPS_ACCURACY 2000
+#include "stdafx.h"
+#include "MappedFile.h"
 
-extern BOOL isFpsChanged;
-
-extern const WORD counters[10][FPS_HEIGHT];
-
-struct FrameItem
+MappedFile::MappedFile(HMODULE hModule)
 {
-	DWORD tick;
-	DWORD span;
-};
+	this->hModule = hModule;
+	this->hFile = INVALID_HANDLE_VALUE;
+	this->hMap = NULL;
+	this->address = NULL;
+}
 
-class FpsCounter : public Allocation
+MappedFile::~MappedFile()
 {
-private:
-	DWORD accuracy;
-	DWORD count;
-	DWORD checkIndex;
-	DWORD currentIndex;
-	DWORD summary;
-	DWORD lastTick;
-	FrameItem* tickQueue;
+	if (this->address)
+		UnmapViewOfFile(this->address);
 
-public:
-	DWORD value;
+	if (this->hMap)
+		CloseHandle(this->hMap);
 
-	FpsCounter(DWORD accuracy);
-	~FpsCounter();
+	if (this->hFile != INVALID_HANDLE_VALUE)
+		CloseHandle(this->hFile);
+}
 
-	VOID Reset();
-	VOID Calculate();
-};
+VOID MappedFile::Load()
+{
+	CHAR filePath[MAX_PATH];
+	GetModuleFileName(hModule, filePath, MAX_PATH);
+	this->hFile = CreateFile(filePath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+	if (this->hFile == INVALID_HANDLE_VALUE)
+		return;
+
+	this->hMap = CreateFileMapping(this->hFile, NULL, PAGE_READONLY, 0, 0, NULL);
+	if (!this->hMap)
+		return;
+
+	this->address = MapViewOfFile(this->hMap, FILE_MAP_READ, 0, 0, 0);
+}
+
+

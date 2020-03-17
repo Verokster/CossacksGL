@@ -1,7 +1,7 @@
 /*
 	MIT License
 
-	Copyright (c) 2019 Oleksiy Ryabchun
+	Copyright (c) 2020 Oleksiy Ryabchun
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy
 	of this software and associated documentation files (the "Software"), to deal
@@ -28,12 +28,16 @@
 #include "ExtraTypes.h"
 
 #define BLOCK_SIZE 256
-//#define BLOCK_DEBUG
+
+typedef DWORD(__fastcall* COMPARE)(DWORD, DWORD, DWORD*, DWORD*);
+typedef BOOL(__fastcall* BLOCKCOMPARE)(LONG, LONG, DWORD, DWORD, DWORD*, DWORD*, POINT*);
+typedef DWORD(__fastcall* SIDECOMPARE)(LONG, LONG, DWORD, DWORD, DWORD*, DWORD*);
 
 class PixelBuffer : public Allocation {
 private:
 	Size size;
 	Size block;
+	DWORD store;
 	DWORD pitch;
 	DWORD length;
 	BOOL isTrue;
@@ -41,16 +45,19 @@ private:
 
 	DWORD* secondaryBuffer;
 
-#ifdef BLOCK_DEBUG
-	VOID* tempBuffer;
-#endif
+	COMPARE ForwardCompare;
+	COMPARE BackwardCompare;
+	BLOCKCOMPARE BlockForwardCompare;
+	BLOCKCOMPARE BlockBackwardCompare;
+	SIDECOMPARE SideForwardCompare;
+	SIDECOMPARE SideBackwardCompare;
 
 	BOOL UpdateBlock(RECT*);
 
 public:
 	DWORD* primaryBuffer;
 
-	PixelBuffer(DWORD, DWORD, DWORD, BOOL);
+	PixelBuffer(DWORD, DWORD, DWORD, BOOL, UpdateMode);
 	~PixelBuffer();
 
 	VOID Prepare(VOID*);

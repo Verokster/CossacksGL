@@ -1,7 +1,7 @@
 /*
 	MIT License
 
-	Copyright (c) 2019 Oleksiy Ryabchun
+	Copyright (c) 2020 Oleksiy Ryabchun
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy
 	of this software and associated documentation files (the "Software"), to deal
@@ -86,11 +86,7 @@ namespace Config
 			config.windowedMode = TRUE;
 			Config::Set(CONFIG, "WindowedMode", config.windowedMode);
 
-			config.vSync = FALSE;
 			Config::Set(CONFIG, "VSync", config.vSync);
-
-			config.fpsCounter = FALSE;
-			Config::Set(CONFIG, "FpsCounter", config.fpsCounter);
 
 			config.filtering = TRUE;
 			Config::Set(CONFIG, "Filtering", config.filtering);
@@ -99,15 +95,21 @@ namespace Config
 			Config::Set(CONFIG, "AspectRatio", config.aspectRatio);
 
 			Config::Set(CONFIG, "MouseCapture", config.mouseCapture);
+
+			config.updateMode = UpdateCPP;
+			Config::Set(CONFIG, "UpdateMode", (INT)config.updateMode);
 		}
 		else
 		{
 			config.windowedMode = (BOOL)Config::Get(CONFIG, "WindowedMode", TRUE);
 			config.vSync = (BOOL)Config::Get(CONFIG, "VSync", FALSE);
-			config.fpsCounter = (BOOL)Config::Get(CONFIG, "FpsCounter", FALSE);
 			config.filtering = (BOOL)Config::Get(CONFIG, "Filtering", TRUE);
 			config.aspectRatio = (BOOL)Config::Get(CONFIG, "AspectRatio", TRUE);
 			config.mouseCapture = (BOOL)Config::Get(CONFIG, "MouseCapture", FALSE);
+
+			config.updateMode = (UpdateMode)Config::Get(CONFIG, "UpdateMode", (INT)UpdateCPP);
+			if (config.updateMode < UpdateNone || config.updateMode > UpdateASM)
+				config.updateMode = UpdateCPP;
 		}
 
 		HMODULE hLibrary = LoadLibrary("NTDLL.dll");

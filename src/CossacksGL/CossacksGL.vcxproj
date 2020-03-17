@@ -96,7 +96,7 @@
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <FixedBaseAddress>true</FixedBaseAddress>
-      <OutputFile>D:\Games\Cossacks - European Wars\dplayx$(TargetExt)</OutputFile>
+      <OutputFile>D:\Games\Стратегии от GSC Game World\Завоевание Америки\В Поисках Эльдорадо\dplayx$(TargetExt)</OutputFile>
       <EntryPointSymbol>DllMain</EntryPointSymbol>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
@@ -170,13 +170,13 @@
     <ClCompile Include="DirectDrawPalette.cpp" />
     <ClCompile Include="DirectDrawSurface.cpp" />
     <ClCompile Include="DllMain.cpp" />
-    <ClCompile Include="FpsCounter.cpp" />
     <ClCompile Include="GLib.cpp" />
     <ClCompile Include="Hooks.cpp" />
     <ClCompile Include="IDraw.cpp" />
     <ClCompile Include="IDrawPalette.cpp" />
     <ClCompile Include="IDrawSurface.cpp" />
     <ClCompile Include="IDrawUnknown.cpp" />
+    <ClCompile Include="MappedFile.cpp" />
     <ClCompile Include="PixelBuffer.cpp" />
     <ClCompile Include="StdAfx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -191,7 +191,6 @@
     <ClInclude Include="DirectDrawPalette.h" />
     <ClInclude Include="DirectDrawSurface.h" />
     <ClInclude Include="ExtraTypes.h" />
-    <ClInclude Include="FpsCounter.h" />
     <ClInclude Include="GLib.h" />
     <ClInclude Include="Hooks.h" />
     <ClInclude Include="IDraw.h" />
@@ -199,6 +198,7 @@
     <ClInclude Include="IDrawSurface.h" />
     <ClInclude Include="IDrawUnknown.h" />
     <ClInclude Include="Main.h" />
+    <ClInclude Include="MappedFile.h" />
     <ClInclude Include="PixelBuffer.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="StdAfx.h" />
@@ -208,7 +208,6 @@
     <ResourceCompile Include="module.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include=".clang-format" />
     <None Include="module.def" />
     <None Include="Shaders\linear.fgl" />
     <None Include="Shaders\linear.vgl" />

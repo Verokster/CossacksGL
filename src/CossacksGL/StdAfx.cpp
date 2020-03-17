@@ -1,7 +1,7 @@
 /*
 	MIT License
 
-	Copyright (c) 2019 Oleksiy Ryabchun
+	Copyright (c) 2020 Oleksiy Ryabchun
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy
 	of this software and associated documentation files (the "Software"), to deal
@@ -139,24 +139,6 @@ VOID LoadDPlayX()
 			pDllUnregisterServer = (DWORD)GetProcAddress(hLib, "DllUnregisterServer");
 			pGdwDPlaySPRefCount = (DWORD)GetProcAddress(hLib, "gdwDPlaySPRefCount");
 		}
-	}
-
-	HMODULE hLib = LoadLibrary("DPWSOCKX.dll");
-	if (hLib)
-	{
-		MappedFile file = { hLib, NULL, NULL, NULL };
-		{
-			Hooks::PatchFunction(&file, "gdwDPlaySPRefCount", (VOID*)pGdwDPlaySPRefCount);
-		}
-
-		if (file.address)
-			UnmapViewOfFile(file.address);
-
-		if (file.hMap)
-			CloseHandle(file.hMap);
-
-		if (file.hFile)
-			CloseHandle(file.hFile);
 	}
 }
 

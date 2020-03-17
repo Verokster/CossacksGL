@@ -1,7 +1,7 @@
 /*
 	MIT License
 
-	Copyright (c) 2019 Oleksiy Ryabchun
+	Copyright (c) 2020 Oleksiy Ryabchun
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy
 	of this software and associated documentation files (the "Software"), to deal
@@ -25,328 +25,463 @@
 #include "stdafx.h"
 #include "PixelBuffer.h"
 
-DWORD __declspec(naked) __fastcall ForwardCompare(DWORD count, DWORD slice, VOID* ptr1, VOID* ptr2)
+namespace ASM
 {
-	__asm {
-		push ebp
-		mov ebp, esp
-		push esi
-		push edi
+	DWORD __declspec(naked) __fastcall ForwardCompare(DWORD count, DWORD slice, DWORD* ptr1, DWORD* ptr2)
+	{
+		__asm {
+			push ebp
+			mov ebp, esp
+			push esi
+			push edi
 
-		mov esi, ptr1
-		mov edi, ptr2
+			mov esi, ptr1
+			mov edi, ptr2
 
-		sal edx, 2
-		add esi, edx
-		add edi, edx
+			sal edx, 2
+			add esi, edx
+			add edi, edx
 
-		repe cmpsd
-		jz lbl_ret
-		inc ecx
-
-		lbl_ret:
-		mov eax, ecx
-
-		pop edi
-		pop esi
-		mov esp, ebp
-		pop ebp
-
-		retn 8
-	}
-}
-
-DWORD __declspec(naked) __fastcall BackwardCompare(DWORD count, DWORD slice, VOID* ptr1, VOID* ptr2)
-{
-	__asm {
-		push ebp
-		mov ebp, esp
-		push esi
-		push edi
-
-		mov esi, ptr1
-		mov edi, ptr2
-
-		sal edx, 2
-		add esi, edx
-		add edi, edx
-
-		std
-		repe cmpsd
-		cld
-		jz lbl_ret
-		inc ecx
-
-		lbl_ret:
-		mov eax, ecx
-
-		pop edi
-		pop esi
-		mov esp, ebp
-		pop ebp
-
-		retn 8
-	}
-}
-
-BOOL __declspec(naked) __fastcall ForwardCompare(LONG width, LONG height, DWORD pitch, DWORD slice, VOID* ptr1, VOID* ptr2, POINT* p)
-{
-	__asm {
-		push ebp
-		mov ebp, esp
-		push ebx
-		push esi
-		push edi
-
-		mov eax, ecx
-		mov esp, edx
-
-		mov ebx, pitch
-		sub ebx, eax
-		sal ebx, 2
-
-		mov esi, ptr1
-		mov edi, ptr2
-
-		mov ecx, slice
-		sal ecx, 2
-
-		add esi, ecx
-		add edi, ecx
-
-		lbl_cycle:
-			mov ecx, eax
 			repe cmpsd
-			jne lbl_break
-
-			add esi, ebx
-			add edi, ebx
-		dec edx
-		jnz lbl_cycle
-
-		xor eax, eax
-		jmp lbl_ret
-
-		lbl_break:
-		mov ebx, p
-		
-		inc ecx
-		sub eax, ecx
-		mov [ebx], eax
-
-		sub esp, edx
-		mov [ebx+4], esp
-
-		xor eax, eax
-		inc eax
-
-		lbl_ret:
-		mov esp, ebp
-		sub esp, 12
-		pop edi
-		pop esi
-		pop ebx
-		pop ebp
-
-		retn 20
-	}
-}
-
-BOOL __declspec(naked) __fastcall BackwardCompare(LONG width, LONG height, DWORD pitch, DWORD slice, VOID* ptr1, VOID* ptr2, POINT* p)
-{
-	__asm {
-		push ebp
-		mov ebp, esp
-		push ebx
-		push esi
-		push edi
-
-		mov eax, ecx
-
-		mov ebx, pitch
-		sub ebx, eax
-		sal ebx, 2
-
-		mov esi, ptr1
-		mov edi, ptr2
-
-		mov ecx, slice
-		sal ecx, 2
-
-		add esi, ecx
-		add edi, ecx
-
-		std
-
-		lbl_cycle:
-			mov ecx, eax
-			repe cmpsd
-			jnz lbl_break
-
-			sub esi, ebx
-			sub edi, ebx
-		dec edx
-		jnz lbl_cycle
-
-		xor eax, eax
-		jmp lbl_ret
-
-		lbl_break:
-		mov ebx, p
-		
-		mov [ebx], ecx
-
-		dec edx
-		mov [ebx+4], edx
-
-		xor eax, eax
-		inc eax
-
-		lbl_ret:
-		cld
-		pop edi
-		pop esi
-		pop ebx
-		mov esp, ebp
-		pop ebp
-
-		retn 20
-	}
-}
-
-DWORD __declspec(naked) __fastcall ForwardCompare(LONG width, LONG height, DWORD pitch, DWORD slice, VOID* ptr1, VOID* ptr2)
-{
-	__asm {
-		push ebp
-		mov ebp, esp
-		push ebx
-		push esi
-		push edi
-
-		mov eax, ecx
-		mov esp, ecx
-
-		mov ebx, pitch
-		sub ebx, eax
-		sal ebx, 2
-
-		mov esi, ptr1
-		mov edi, ptr2
-
-		mov ecx, slice
-		sal ecx, 2
-
-		add esi, ecx
-		add edi, ecx
-
-		lbl_cycle:
-			mov ecx, eax
-			repe cmpsd
-			jz lbl_inc
-			
-			sub eax, ecx
-			dec eax
 			jz lbl_ret
+			inc ecx
 
-			sal ecx, 2
-			add ebx, ecx
-			add esi, ebx
-			add edi, ebx
-			add ebx, 4
-			jmp lbl_cont
+			lbl_ret:
+			mov eax, ecx
 
-			lbl_inc:
-			add esi, ebx
-			add edi, ebx
-			
-			lbl_cont:
-		dec edx
-		jnz lbl_cycle
+			pop edi
+			pop esi
+			mov esp, ebp
+			pop ebp
 
-		lbl_ret:
-		sub esp, eax
-		mov eax, esp
-
-		mov esp, ebp
-		sub esp, 12
-		pop edi
-		pop esi
-		pop ebx
-		pop ebp
-
-		retn 16
+			retn 8
+		}
 	}
-}
 
-DWORD __declspec(naked) __fastcall BackwardCompare(LONG width, LONG height, DWORD pitch, DWORD slice, VOID* ptr1, VOID* ptr2)
-{
-	__asm {
-		push ebp
-		mov ebp, esp
-		push ebx
-		push esi
-		push edi
+	DWORD __declspec(naked) __fastcall BackwardCompare(DWORD count, DWORD slice, DWORD* ptr1, DWORD* ptr2)
+	{
+		__asm {
+			push ebp
+			mov ebp, esp
+			push esi
+			push edi
 
-		mov eax, ecx
-		mov esp, ecx
+			mov esi, ptr1
+			mov edi, ptr2
 
-		mov ebx, pitch
-		sub ebx, eax
-		sal ebx, 2
+			sal edx, 2
+			add esi, edx
+			add edi, edx
 
-		mov esi, ptr1
-		mov edi, ptr2
-
-		mov ecx, slice
-		sal ecx, 2
-
-		add esi, ecx
-		add edi, ecx
-
-		std
-
-		lbl_cycle:
-			mov ecx, eax
+			std
 			repe cmpsd
-			jz lbl_inc
-			
-			sub eax, ecx
-			dec eax
+			cld
 			jz lbl_ret
+			inc ecx
 
+			lbl_ret:
+			mov eax, ecx
+
+			pop edi
+			pop esi
+			mov esp, ebp
+			pop ebp
+
+			retn 8
+		}
+	}
+
+	BOOL __declspec(naked) __fastcall BlockForwardCompare(LONG width, LONG height, DWORD pitch, DWORD slice, DWORD* ptr1, DWORD* ptr2, POINT* p)
+	{
+		__asm {
+			push ebp
+			mov ebp, esp
+			push ebx
+			push esi
+			push edi
+
+			mov eax, ecx
+			mov esp, edx
+
+			mov ebx, pitch
+			sub ebx, eax
+			sal ebx, 2
+
+			mov esi, ptr1
+			mov edi, ptr2
+
+			mov ecx, slice
 			sal ecx, 2
-			add ebx, ecx
-			sub esi, ebx
-			sub edi, ebx
-			add ebx, 4
-			jmp lbl_cont
 
-			lbl_inc:
-			sub esi, ebx
-			sub edi, ebx
+			add esi, ecx
+			add edi, ecx
+
+			lbl_cycle:
+				mov ecx, eax
+				repe cmpsd
+				jne lbl_break
+
+				add esi, ebx
+				add edi, ebx
+			dec edx
+			jnz lbl_cycle
+
+			xor eax, eax
+			jmp lbl_ret
+
+			lbl_break:
+			mov ebx, p
+		
+			inc ecx
+			sub eax, ecx
+			mov [ebx], eax
+
+			sub esp, edx
+			mov [ebx+4], esp
+
+			xor eax, eax
+			inc eax
+
+			lbl_ret:
+			mov esp, ebp
+			sub esp, 12
+			pop edi
+			pop esi
+			pop ebx
+			pop ebp
+
+			retn 20
+		}
+	}
+
+	BOOL __declspec(naked) __fastcall BlockBackwardCompare(LONG width, LONG height, DWORD pitch, DWORD slice, DWORD* ptr1, DWORD* ptr2, POINT* p)
+	{
+		__asm {
+			push ebp
+			mov ebp, esp
+			push ebx
+			push esi
+			push edi
+
+			mov eax, ecx
+
+			mov ebx, pitch
+			sub ebx, eax
+			sal ebx, 2
+
+			mov esi, ptr1
+			mov edi, ptr2
+
+			mov ecx, slice
+			sal ecx, 2
+
+			add esi, ecx
+			add edi, ecx
+
+			std
+
+			lbl_cycle:
+				mov ecx, eax
+				repe cmpsd
+				jnz lbl_break
+
+				sub esi, ebx
+				sub edi, ebx
+			dec edx
+			jnz lbl_cycle
+
+			xor eax, eax
+			jmp lbl_ret
+
+			lbl_break:
+			mov ebx, p
+		
+			mov [ebx], ecx
+
+			dec edx
+			mov [ebx+4], edx
+
+			xor eax, eax
+			inc eax
+
+			lbl_ret:
+			cld
+			pop edi
+			pop esi
+			pop ebx
+			mov esp, ebp
+			pop ebp
+
+			retn 20
+		}
+	}
+
+	DWORD __declspec(naked) __fastcall SideForwardCompare(LONG width, LONG height, DWORD pitch, DWORD slice, DWORD* ptr1, DWORD* ptr2)
+	{
+		__asm {
+			push ebp
+			mov ebp, esp
+			push ebx
+			push esi
+			push edi
+
+			mov eax, ecx
+			mov esp, ecx
+
+			mov ebx, pitch
+			sub ebx, eax
+			sal ebx, 2
+
+			mov esi, ptr1
+			mov edi, ptr2
+
+			mov ecx, slice
+			sal ecx, 2
+
+			add esi, ecx
+			add edi, ecx
+
+			lbl_cycle:
+				mov ecx, eax
+				repe cmpsd
+				jz lbl_inc
 			
-			lbl_cont:
-		dec edx
-		jnz lbl_cycle
+				sub eax, ecx
+				dec eax
+				jz lbl_ret
 
-		lbl_ret:
-		sub esp, eax
-		mov eax, esp
+				sal ecx, 2
+				add ebx, ecx
+				add esi, ebx
+				add edi, ebx
+				add ebx, 4
+				jmp lbl_cont
 
-		cld
+				lbl_inc:
+				add esi, ebx
+				add edi, ebx
+			
+				lbl_cont:
+			dec edx
+			jnz lbl_cycle
 
-		mov esp, ebp
-		sub esp, 12
-		pop edi
-		pop esi
-		pop ebx
-		pop ebp
+			lbl_ret:
+			sub esp, eax
+			mov eax, esp
 
-		retn 16
+			mov esp, ebp
+			sub esp, 12
+			pop edi
+			pop esi
+			pop ebx
+			pop ebp
+
+			retn 16
+		}
+	}
+
+	DWORD __declspec(naked) __fastcall SideBackwardCompare(LONG width, LONG height, DWORD pitch, DWORD slice, DWORD* ptr1, DWORD* ptr2)
+	{
+		__asm {
+			push ebp
+			mov ebp, esp
+			push ebx
+			push esi
+			push edi
+
+			mov eax, ecx
+			mov esp, ecx
+
+			mov ebx, pitch
+			sub ebx, eax
+			sal ebx, 2
+
+			mov esi, ptr1
+			mov edi, ptr2
+
+			mov ecx, slice
+			sal ecx, 2
+
+			add esi, ecx
+			add edi, ecx
+
+			std
+
+			lbl_cycle:
+				mov ecx, eax
+				repe cmpsd
+				jz lbl_inc
+			
+				sub eax, ecx
+				dec eax
+				jz lbl_ret
+
+				sal ecx, 2
+				add ebx, ecx
+				sub esi, ebx
+				sub edi, ebx
+				add ebx, 4
+				jmp lbl_cont
+
+				lbl_inc:
+				sub esi, ebx
+				sub edi, ebx
+			
+				lbl_cont:
+			dec edx
+			jnz lbl_cycle
+
+			lbl_ret:
+			sub esp, eax
+			mov eax, esp
+
+			cld
+
+			mov esp, ebp
+			sub esp, 12
+			pop edi
+			pop esi
+			pop ebx
+			pop ebp
+
+			retn 16
+		}
 	}
 }
 
-PixelBuffer::PixelBuffer(DWORD width, DWORD height, DWORD pitch, BOOL isTrue)
+namespace CPP
+{
+	DWORD __fastcall ForwardCompare(DWORD count, DWORD slice, DWORD* ptr1, DWORD* ptr2)
+	{
+		ptr1 += slice;
+		ptr2 += slice;
+
+		for (DWORD i = 0; i < count; ++i)
+			if (ptr1[i] != ptr2[i])
+				return count - i;
+
+		return 0;
+	}
+
+	DWORD __fastcall BackwardCompare(DWORD count, DWORD slice, DWORD* ptr1, DWORD* ptr2)
+	{
+		ptr1 += slice;
+		ptr2 += slice;
+
+		DWORD i = count;
+		for (DWORD i = 0; i < count; ++i)
+			if (ptr1[-i] != ptr2[-i])
+				return count - i;
+
+		return i;
+	}
+
+	BOOL __fastcall BlockForwardCompare(LONG width, LONG height, DWORD pitch, DWORD slice, DWORD* ptr1, DWORD* ptr2, POINT* p)
+	{
+		ptr1 += slice;
+		ptr2 += slice;
+
+		for (LONG y = 0; y < height; ++y)
+		{
+			for (LONG x = 0; x < width; ++x)
+			{
+				if (ptr1[x] != ptr2[x])
+				{
+					p->x = x;
+					p->y = y;
+					return TRUE;
+				}
+			}
+
+			ptr1 += pitch;
+			ptr2 += pitch;
+		}
+
+		return FALSE;
+	}
+
+	BOOL __fastcall BlockBackwardCompare(LONG width, LONG height, DWORD pitch, DWORD slice, DWORD* ptr1, DWORD* ptr2, POINT* p)
+	{
+		ptr1 += slice;
+		ptr2 += slice;
+
+		for (LONG y = 0; y < height; ++y)
+		{
+			for (LONG x = 0; x < width; ++x)
+			{
+				if (ptr1[-x] != ptr2[-x])
+				{
+					p->x = width - x - 1;
+					p->y = height - y - 1;
+					return TRUE;
+				}
+			}
+
+			ptr1 -= pitch;
+			ptr2 -= pitch;
+		}
+
+		return FALSE;
+	}
+
+	DWORD __fastcall SideForwardCompare(LONG width, LONG height, DWORD pitch, DWORD slice, DWORD* ptr1, DWORD* ptr2)
+	{
+		DWORD count = width;
+
+		ptr1 += slice;
+		ptr2 += slice;
+
+		for (LONG y = 0; y < height; ++y)
+		{
+			for (LONG x = 0; x < width; ++x)
+			{
+				if (ptr1[x] != ptr2[x])
+				{
+					width = x;
+					if (!width)
+						return count;
+
+					break;
+				}
+			}
+
+			ptr1 += pitch;
+			ptr2 += pitch;
+		}
+
+		return count - width;
+	}
+
+	DWORD __fastcall SideBackwardCompare(LONG width, LONG height, DWORD pitch, DWORD slice, DWORD* ptr1, DWORD* ptr2)
+	{
+		DWORD count = width;
+
+		ptr1 += slice;
+		ptr2 += slice;
+
+		for (LONG y = 0; y < height; ++y)
+		{
+			for (LONG x = 0; x < width; ++x)
+			{
+				if (ptr1[-x] != ptr2[-x])
+				{
+					width = x;
+					if (!width)
+						return count;
+
+					break;
+				}
+			}
+
+			ptr1 -= pitch;
+			ptr2 -= pitch;
+		}
+
+		return count - width;
+	}
+}
+
+PixelBuffer::PixelBuffer(DWORD width, DWORD height, DWORD pitch, BOOL isTrue, UpdateMode mode)
 {
 	this->isTrue = isTrue;
 	if (!isTrue)
@@ -364,13 +499,38 @@ PixelBuffer::PixelBuffer(DWORD width, DWORD height, DWORD pitch, BOOL isTrue)
 		this->length = (pitch * height) << 2;
 	}
 
+	this->store = pitch;
+
 	this->primaryBuffer = (DWORD*)AlignedAlloc(this->length);
 	this->secondaryBuffer = (DWORD*)AlignedAlloc(this->length);
 
-#ifdef BLOCK_DEBUG
-	this->tempBuffer = AlignedAlloc(this->length);
-	MemoryZero(this->tempBuffer, this->length);
-#endif
+	switch (mode)
+	{
+	case UpdateCPP:
+		this->ForwardCompare = CPP::ForwardCompare;
+		this->BackwardCompare = CPP::BackwardCompare;
+		this->BlockForwardCompare = CPP::BlockForwardCompare;
+		this->BlockBackwardCompare = CPP::BlockBackwardCompare;
+		this->SideForwardCompare = CPP::SideForwardCompare;
+		this->SideBackwardCompare = CPP::SideBackwardCompare;
+		break;
+	case UpdateASM:
+		this->ForwardCompare = ASM::ForwardCompare;
+		this->BackwardCompare = ASM::BackwardCompare;
+		this->BlockForwardCompare = ASM::BlockForwardCompare;
+		this->BlockBackwardCompare = ASM::BlockBackwardCompare;
+		this->SideForwardCompare = ASM::SideForwardCompare;
+		this->SideBackwardCompare = ASM::SideBackwardCompare;
+		break;
+	default:
+		this->ForwardCompare = NULL;
+		this->BackwardCompare = NULL;
+		this->BlockForwardCompare = NULL;
+		this->BlockBackwardCompare = NULL;
+		this->SideForwardCompare = NULL;
+		this->SideBackwardCompare = NULL;
+		break;
+	}
 
 	this->reset = TRUE;
 }
@@ -379,10 +539,6 @@ PixelBuffer::~PixelBuffer()
 {
 	AlignedFree(this->primaryBuffer);
 	AlignedFree(this->secondaryBuffer);
-
-#ifdef BLOCK_DEBUG
-	AlignedFree(this->tempBuffer);
-#endif
 }
 
 VOID PixelBuffer::Prepare(VOID* data)
@@ -394,7 +550,7 @@ BOOL PixelBuffer::Update()
 {
 	BOOL res = FALSE;
 
-	if (this->reset)
+	if (!this->ForwardCompare || this->reset)
 	{
 		this->reset = FALSE;
 
@@ -407,18 +563,13 @@ BOOL PixelBuffer::Update()
 	}
 	else
 	{
+		GLPixelStorei(GL_UNPACK_ROW_LENGTH, this->store);
+
 		DWORD left, right;
 		DWORD size = this->pitch * this->size.height;
-		if ((left = ForwardCompare(size, 0, (DWORD*)this->primaryBuffer, (DWORD*)this->secondaryBuffer))
-			&& (right = BackwardCompare(size, size - 1, (DWORD*)this->primaryBuffer, (DWORD*)this->secondaryBuffer)))
+		if ((left = this->ForwardCompare(size, 0, (DWORD*)this->primaryBuffer, (DWORD*)this->secondaryBuffer))
+			&& (right = this->BackwardCompare(size, size - 1, (DWORD*)this->primaryBuffer, (DWORD*)this->secondaryBuffer)))
 		{
-#ifdef BLOCK_DEBUG
-			if (!this->isTrue)
-				GLTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, this->size.width << 2, this->size.height, GL_ALPHA, GL_UNSIGNED_BYTE, this->tempBuffer);
-			else
-				GLTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, this->size.width, this->size.height, GL_RGBA, GL_UNSIGNED_BYTE, this->tempBuffer);
-#endif
-
 			DWORD top = (size - left) / this->pitch;
 			DWORD bottom = (right - 1) / this->pitch + 1;
 			for (DWORD y = top; y < bottom; y += this->block.height)
@@ -444,6 +595,8 @@ BOOL PixelBuffer::Update()
 
 			res = TRUE;
 		}
+
+		GLPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 	}
 
 	if (res)
@@ -461,10 +614,10 @@ BOOL PixelBuffer::UpdateBlock(RECT* rect)
 	RECT rc;
 	LONG width = rect->right - rect->left + 1;
 	LONG height = rect->bottom - rect->top + 1;
-	if (ForwardCompare(width, height, this->pitch,
+	if (this->BlockForwardCompare(width, height, this->pitch,
 			rect->top * this->pitch + rect->left,
 			this->primaryBuffer, this->secondaryBuffer, (POINT*)&rc.left)
-		&& BackwardCompare(width, height, this->pitch,
+		&& this->BlockBackwardCompare(width, height, this->pitch,
 			rect->bottom * this->pitch + rect->right,
 			this->primaryBuffer, this->secondaryBuffer, (POINT*)&rc.right))
 	{
@@ -485,13 +638,13 @@ BOOL PixelBuffer::UpdateBlock(RECT* rect)
 		{
 			width = rc.left - rect->left;
 			if (width)
-				rc.left -= ForwardCompare(width, height, this->pitch,
+				rc.left -= this->SideForwardCompare(width, height, this->pitch,
 					(rc.top + 1) * this->pitch + rect->left,
 					this->primaryBuffer, this->secondaryBuffer);
 
 			width = rect->right - rc.right;
 			if (width)
-				rc.right += BackwardCompare(width, height, this->pitch,
+				rc.right += this->SideBackwardCompare(width, height, this->pitch,
 					(rc.bottom - 1) * this->pitch + rect->right,
 					this->primaryBuffer, this->secondaryBuffer);
 		}

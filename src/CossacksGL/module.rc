@@ -68,7 +68,7 @@ IDD_ABOUT DIALOGEX DISCARDABLE 29,23,216,190
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP
 FONT 8, "MS Sans Serif"
 BEGIN
-	CTEXT			"Disciples I && II\nOpenGL Wrapper",IDC_STATIC,0,8,216,24
+	CTEXT			"Cossacks && American Conquest\nOpenGL Wrapper",IDC_STATIC,0,8,216,24
 	CTEXT			"Version %d.%d%d   Build %d",IDC_VERSION,0,40,216,11
 	CTEXT			"Check for new version",IDC_STATIC,0,64,216,11
 	CONTROL			"",IDC_LNK_WEB,"SysLink",WS_TABSTOP,48,76,216,11
@@ -84,7 +84,7 @@ IDD_ABOUT_OLD DIALOGEX DISCARDABLE 29,23,216,190
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP
 FONT 8, "MS Sans Serif"
 BEGIN
-	CTEXT			"Disciples I && II\nOpenGL Wrapper",IDC_STATIC,0,8,216,24
+	CTEXT			"Cossacks && American Conquest\nOpenGL Wrapper",IDC_STATIC,0,8,216,24
 	CTEXT			"Version %d.%d%d   Build %d",IDC_VERSION,0,40,216,11
 	CTEXT			"Check for new version",IDC_STATIC,0,64,216,11
 	CTEXT			"",IDC_LNK_WEB,0,76,216,11
@@ -113,7 +113,7 @@ IDR_FRAGMENT_LINEAR		RCDATA		DISCARDABLE			".\\shaders\\linear.fgl"
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2020,3,17,310
+ FILEVERSION 2020,3,20,311
  PRODUCTVERSION 2,2,1,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
@@ -130,7 +130,7 @@ BEGIN
 		BLOCK "040904b0"
 		BEGIN
 			VALUE "FileDescription", "Cossacks OpenGL wrapper"
-			VALUE "FileVersion", "2020.03.17.310"
+			VALUE "FileVersion", "2020.03.20.311"
 			VALUE "LegalCopyright", "© 2020 Verok (verokster@gmail.com)"
 			VALUE "OriginalFilename", "dplayx.dll"
 			VALUE "ProductVersion", "2.2.1"

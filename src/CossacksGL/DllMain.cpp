@@ -82,7 +82,6 @@ BOOL __stdcall DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 	}
 
 	case DLL_PROCESS_DETACH:
-		Window::SetCaptureMouse(FALSE);
 		Window::SetCaptureKeys(FALSE);
 
 		if (hActCtx && hActCtx != INVALID_HANDLE_VALUE)

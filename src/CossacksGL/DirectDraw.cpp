@@ -844,83 +844,57 @@ BOOL DirectDraw::CheckView()
 	return FALSE;
 }
 
-VOID DirectDraw::CaptureMouse(UINT uMsg, LPMSLLHOOKSTRUCT mInfo)
+VOID DirectDraw::CaptureMouse()
 {
-	if (config.windowedMode)
-	{
-		switch (uMsg)
-		{
-		case WM_MOUSEMOVE: {
-			this->HookMouse(uMsg, mInfo);
-			break;
-		}
+	POINT pt;
+	GetCursorPos(&pt);
+	ScreenToClient(hWnd, &pt);
 
-		case WM_LBUTTONUP: {
-			if (this->mbPressed & MK_LBUTTON)
-				this->HookMouse(uMsg, mInfo);
-
-			break;
-		}
-
-		case WM_RBUTTONUP: {
-			if (this->mbPressed & MK_RBUTTON)
-				this->HookMouse(uMsg, mInfo);
-
-			break;
-		}
-
-		default:
-			break;
-		}
-	}
-}
-
-VOID DirectDraw::HookMouse(UINT uMsg, LPMSLLHOOKSTRUCT mInfo)
-{
-	POINT point = mInfo->pt;
-	ScreenToClient(this->hWnd, &point);
 	RECT rect;
 	GetClientRect(hWnd, &rect);
 
-	if (point.x < rect.left || point.x > rect.right || point.y < rect.top || point.y > rect.bottom)
+	if (pt.x < rect.left || pt.x >= rect.right || pt.y < rect.top || pt.y >= rect.bottom)
 	{
-		if (point.x < rect.left)
-			point.x = rect.left;
-		else if (point.x > rect.right)
-			point.x = rect.right;
+		DWORD point = MAKELONG(pt.x, pt.y);
 
-		if (point.y < rect.top)
-			point.y = rect.top;
-		else if (point.y > rect.bottom)
-			point.y = rect.bottom;
+		SendMessage(hWnd, WM_MOUSEMOVE, this->mbPressed, point);
 
-		SendMessage(this->hWnd, uMsg, this->mbPressed, MAKELONG(point.x, point.y));
+		if ((this->mbPressed & MK_LBUTTON) && !(GetKeyState(VK_LBUTTON) & 0x8000))
+			SendMessage(hWnd, WM_LBUTTONUP, NULL, point);
+
+		if ((this->mbPressed & MK_RBUTTON) && !(GetKeyState(VK_RBUTTON) & 0x8000))
+			SendMessage(hWnd, WM_RBUTTONUP, NULL, point);
+
+		if ((this->mbPressed & MK_MBUTTON) && !(GetKeyState(VK_MBUTTON) & 0x8000))
+			SendMessage(hWnd, WM_MBUTTONUP, NULL, point);
 	}
 }
 
-VOID DirectDraw::ScaleMouse(UINT uMsg, LPARAM* lParam)
+DWORD DirectDraw::ScaleMouse(DWORD lParam)
 {
 	if (config.windowedMode)
 	{
-		INT xPos = GET_X_LPARAM(*lParam);
-		INT yPos = GET_Y_LPARAM(*lParam);
+		INT x = GET_X_LPARAM(lParam);
+		INT y = GET_Y_LPARAM(lParam);
 
-		if (xPos < this->viewport.rectangle.x)
-			xPos = 0;
-		else if (xPos >= this->viewport.rectangle.x + this->viewport.rectangle.width)
-			xPos = this->dwMode->width - 1;
+		if (x < this->viewport.rectangle.x)
+			x = 0;
+		else if (x >= this->viewport.rectangle.x + this->viewport.rectangle.width)
+			x = this->dwMode->width - 1;
 		else
-			xPos = (INT)((FLOAT)(xPos - this->viewport.rectangle.x) / this->viewport.clipFactor.x);
+			x = (INT)((FLOAT)(x - this->viewport.rectangle.x) / this->viewport.clipFactor.x);
 
-		if (yPos < this->viewport.rectangle.y)
-			yPos = 0;
-		else if (yPos >= this->viewport.rectangle.y + this->viewport.rectangle.height)
-			yPos = this->dwMode->height - 1;
+		if (y < this->viewport.rectangle.y)
+			y = 0;
+		else if (y >= this->viewport.rectangle.y + this->viewport.rectangle.height)
+			y = this->dwMode->height - 1;
 		else
-			yPos = (INT)((FLOAT)(yPos - this->viewport.rectangle.y) / this->viewport.clipFactor.y);
+			y = (INT)((FLOAT)(y - this->viewport.rectangle.y) / this->viewport.clipFactor.y);
 
-		*lParam = MAKELONG(xPos, yPos);
+		lParam = MAKELONG(x, y);
 	}
+
+	return lParam;
 }
 
 #pragma optimize("", on)
@@ -1230,8 +1204,6 @@ HRESULT DirectDraw::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP)
 	{
 		if (!(GetWindowLong(this->hWnd, GWL_STYLE) & WS_BORDER))
 			this->SetWindowedMode();
-		else
-			Window::SetCaptureMouse(TRUE);
 	}
 	else
 		this->SetFullscreenMode();
@@ -1270,8 +1242,6 @@ VOID DirectDraw::SetFullscreenMode()
 		SetWindowPos(this->hWnd, NULL, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), NULL);
 		SetForegroundWindow(this->hWnd);
 
-		Window::SetCaptureMouse(FALSE);
-
 		if (ChangeDisplaySettingsEx(NULL, &devMode, NULL, CDS_FULLSCREEN | CDS_RESET, NULL) == DISP_CHANGE_SUCCESSFUL)
 		{
 			RECT rc;
@@ -1288,8 +1258,6 @@ VOID DirectDraw::SetFullscreenMode()
 VOID DirectDraw::SetWindowedMode()
 {
 	ChangeDisplaySettings(NULL, NULL);
-
-	Window::SetCaptureMouse(TRUE);
 
 	if (!this->windowPlacement.length)
 	{

@@ -64,9 +64,8 @@ public:
 	BOOL CheckView();
 	VOID SetFullscreenMode();
 	VOID SetWindowedMode();
-	VOID CaptureMouse(UINT uMsg, LPMSLLHOOKSTRUCT mInfo);
-	VOID HookMouse(UINT uMsg, LPMSLLHOOKSTRUCT mInfo);
-	VOID ScaleMouse(UINT uMsg, LPARAM* lParam);
+	VOID CaptureMouse();
+	DWORD ScaleMouse(DWORD lParam);
 	VOID TakeScreenshot();
 
 	VOID RenderStart();

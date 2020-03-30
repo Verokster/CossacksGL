@@ -36,7 +36,7 @@
 
 namespace Window
 {
-	HHOOK OldMouseHook, OldKeysHook;
+	HHOOK OldKeysHook;
 	WNDPROC OldWindowProc, OldPanelProc;
 
 #pragma optimize("t", on)
@@ -59,21 +59,6 @@ namespace Window
 		}
 
 		return CallNextHookEx(OldKeysHook, nCode, wParam, lParam);
-	}
-
-	LRESULT __stdcall MouseHook(INT nCode, WPARAM wParam, LPARAM lParam)
-	{
-		if (nCode >= 0)
-		{
-			DirectDraw* ddraw = ddrawList;
-			while (ddraw)
-			{
-				ddraw->CaptureMouse((UINT)wParam, (LPMSLLHOOKSTRUCT)lParam);
-				ddraw = (DirectDraw*)ddraw->last;
-			}
-		}
-
-		return CallNextHookEx(OldMouseHook, nCode, wParam, lParam);
 	}
 
 	BOOL __stdcall EnumChildProc(HWND hDlg, LPARAM lParam)
@@ -274,8 +259,6 @@ namespace Window
 						ChangeDisplaySettings(NULL, NULL);
 					}
 				}
-				else
-					SetCaptureMouse((BOOL)wParam);
 			}
 
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -317,7 +300,6 @@ namespace Window
 				config.mouseCapture = !config.mouseCapture;
 				Config::Set(CONFIG, "MouseCapture", config.mouseCapture);
 				CheckMenu();
-				SetCaptureMouse(config.mouseCapture);
 
 				return NULL;
 			}
@@ -362,13 +344,12 @@ namespace Window
 			}
 
 			case IDM_HELP_ABOUT: {
-				INT_PTR res;
 				ULONG_PTR cookie = NULL;
 				if (hActCtx && hActCtx != INVALID_HANDLE_VALUE && !ActivateActCtxC(hActCtx, &cookie))
 					cookie = NULL;
 
 				LPARAM id = cookie ? IDD_ABOUT : IDD_ABOUT_OLD;
-				res = DialogBoxParam(hDllModule, MAKEINTRESOURCE(id), hWnd, (DLGPROC)AboutProc, id);
+				DialogBoxParam(hDllModule, MAKEINTRESOURCE(id), hWnd, (DLGPROC)AboutProc, id);
 
 				if (cookie)
 					DeactivateActCtxC(0, cookie);
@@ -402,7 +383,7 @@ namespace Window
 		case WM_MOUSEMOVE: {
 			DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
 			if (ddraw)
-				ddraw->ScaleMouse(uMsg, &lParam);
+				lParam = ddraw->ScaleMouse(lParam);
 
 			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
 		}
@@ -412,7 +393,7 @@ namespace Window
 			if (ddraw)
 			{
 				ddraw->mbPressed |= MK_LBUTTON;
-				ddraw->ScaleMouse(uMsg, &lParam);
+				lParam = ddraw->ScaleMouse(lParam);
 			}
 
 			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
@@ -423,7 +404,7 @@ namespace Window
 			if (ddraw)
 			{
 				ddraw->mbPressed |= MK_RBUTTON;
-				ddraw->ScaleMouse(uMsg, &lParam);
+				lParam = ddraw->ScaleMouse(lParam);
 			}
 
 			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
@@ -434,7 +415,7 @@ namespace Window
 			if (ddraw)
 			{
 				ddraw->mbPressed |= MK_MBUTTON;
-				ddraw->ScaleMouse(uMsg, &lParam);
+				lParam = ddraw->ScaleMouse(lParam);
 			}
 
 			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
@@ -445,7 +426,7 @@ namespace Window
 			if (ddraw)
 			{
 				ddraw->mbPressed ^= MK_LBUTTON;
-				ddraw->ScaleMouse(uMsg, &lParam);
+				lParam = ddraw->ScaleMouse(lParam);
 			}
 
 			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
@@ -456,7 +437,7 @@ namespace Window
 			if (ddraw)
 			{
 				ddraw->mbPressed ^= MK_RBUTTON;
-				ddraw->ScaleMouse(uMsg, &lParam);
+				lParam = ddraw->ScaleMouse(lParam);
 			}
 
 			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
@@ -467,7 +448,7 @@ namespace Window
 			if (ddraw)
 			{
 				ddraw->mbPressed ^= MK_MBUTTON;
-				ddraw->ScaleMouse(uMsg, &lParam);
+				lParam = ddraw->ScaleMouse(lParam);
 			}
 
 			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
@@ -522,6 +503,17 @@ namespace Window
 			} while (--check);
 
 			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, (LPARAM)mciId);
+		}
+
+		case WM_TIMER: {
+			if (config.windowedMode && config.mouseCapture)
+			{
+				DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
+				if (ddraw)
+					ddraw->CaptureMouse();
+			}
+
+			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
 		}
 
 		default:
@@ -586,20 +578,6 @@ namespace Window
 		{
 			if (OldKeysHook && UnhookWindowsHookEx(OldKeysHook))
 				OldKeysHook = NULL;
-		}
-	}
-
-	VOID __fastcall SetCaptureMouse(BOOL state)
-	{
-		if (state)
-		{
-			if (config.mouseCapture && !OldMouseHook)
-				OldMouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseHook, hDllModule, NULL);
-		}
-		else
-		{
-			if (OldMouseHook && UnhookWindowsHookEx(OldMouseHook))
-				OldMouseHook = NULL;
 		}
 	}
 

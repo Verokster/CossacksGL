@@ -94,6 +94,7 @@ namespace Config
 			config.aspectRatio = TRUE;
 			Config::Set(CONFIG, "AspectRatio", config.aspectRatio);
 
+			config.mouseCapture = TRUE;
 			Config::Set(CONFIG, "MouseCapture", config.mouseCapture);
 
 			config.updateMode = UpdateCPP;
@@ -105,7 +106,7 @@ namespace Config
 			config.vSync = (BOOL)Config::Get(CONFIG, "VSync", FALSE);
 			config.filtering = (BOOL)Config::Get(CONFIG, "Filtering", TRUE);
 			config.aspectRatio = (BOOL)Config::Get(CONFIG, "AspectRatio", TRUE);
-			config.mouseCapture = (BOOL)Config::Get(CONFIG, "MouseCapture", FALSE);
+			config.mouseCapture = (BOOL)Config::Get(CONFIG, "MouseCapture", TRUE);
 
 			config.updateMode = (UpdateMode)Config::Get(CONFIG, "UpdateMode", (INT)UpdateCPP);
 			if (config.updateMode < UpdateNone || config.updateMode > UpdateASM)

@@ -30,7 +30,7 @@
 #include "Main.h"
 #include "Config.h"
 #include "Window.h"
-#include "MappedFile.h"
+#include "Hooker.h"
 
 MciVideo mciVideo;
 MCIDEVICEID mciList[16];
@@ -39,236 +39,6 @@ INT baseOffset;
 
 namespace Hooks
 {
-	BOOL __fastcall PatchRedirect(DWORD addr, VOID* hook, BYTE instruction, DWORD nop)
-	{
-		DWORD address = addr + baseOffset;
-
-		DWORD size = instruction == 0xEB ? 2 : 5;
-
-		DWORD old_prot;
-		if (VirtualProtect((VOID*)address, size + nop, PAGE_EXECUTE_READWRITE, &old_prot))
-		{
-			BYTE* jump = (BYTE*)address;
-			*jump = instruction;
-			++jump;
-			*(DWORD*)jump = (DWORD)hook - (DWORD)address - size;
-
-			if (nop)
-				MemorySet((VOID*)(address + size), 0x90, nop);
-
-			VirtualProtect((VOID*)address, size + nop, old_prot, &old_prot);
-
-			return TRUE;
-		}
-		return FALSE;
-	}
-
-	BOOL __fastcall PatchHook(DWORD addr, VOID* hook, DWORD nop = 0)
-	{
-		return PatchRedirect(addr, hook, 0xE9, nop);
-	}
-
-	BOOL __fastcall PatchCall(DWORD addr, VOID* hook, DWORD nop = 0)
-	{
-		return PatchRedirect(addr, hook, 0xE8, nop);
-	}
-
-	BOOL __fastcall PatchBlock(DWORD addr, VOID* block, DWORD size)
-	{
-		DWORD address = addr + baseOffset;
-
-		DWORD old_prot;
-		if (VirtualProtect((VOID*)address, size, PAGE_EXECUTE_READWRITE, &old_prot))
-		{
-			switch (size)
-			{
-			case 4:
-				*(DWORD*)address = *(DWORD*)block;
-				break;
-			case 2:
-				*(WORD*)address = *(WORD*)block;
-				break;
-			case 1:
-				*(BYTE*)address = *(BYTE*)block;
-				break;
-			default:
-				MemoryCopy((VOID*)address, block, size);
-				break;
-			}
-
-			VirtualProtect((VOID*)address, size, old_prot, &old_prot);
-
-			return TRUE;
-		}
-		return FALSE;
-	}
-
-	BOOL __fastcall ReadBlock(DWORD addr, VOID* block, DWORD size)
-	{
-		DWORD address = addr + baseOffset;
-
-		DWORD old_prot;
-		if (VirtualProtect((VOID*)address, size, PAGE_READONLY, &old_prot))
-		{
-			switch (size)
-			{
-			case 4:
-				*(DWORD*)block = *(DWORD*)address;
-				break;
-			case 2:
-				*(WORD*)block = *(WORD*)address;
-				break;
-			case 1:
-				*(BYTE*)block = *(BYTE*)address;
-				break;
-			default:
-				MemoryCopy(block, (VOID*)address, size);
-				break;
-			}
-
-			VirtualProtect((VOID*)address, size, old_prot, &old_prot);
-
-			return TRUE;
-		}
-		return FALSE;
-	}
-
-	BOOL __fastcall PatchDWord(DWORD addr, DWORD value)
-	{
-		return PatchBlock(addr, &value, sizeof(value));
-	}
-
-	BOOL __fastcall ReadWord(DWORD addr, WORD* value)
-	{
-		return ReadBlock(addr, value, sizeof(*value));
-	}
-
-	BOOL __fastcall ReadDWord(DWORD addr, DWORD* value)
-	{
-		return ReadBlock(addr, value, sizeof(*value));
-	}
-
-	DWORD __fastcall PatchFunction(MappedFile* file, const CHAR* function, VOID* addr)
-	{
-		DWORD res = NULL;
-
-		DWORD base = (DWORD)file->hModule;
-		PIMAGE_NT_HEADERS headNT = (PIMAGE_NT_HEADERS)((BYTE*)base + ((PIMAGE_DOS_HEADER)file->hModule)->e_lfanew);
-
-		PIMAGE_DATA_DIRECTORY dataDir = &headNT->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
-		if (dataDir->Size)
-		{
-			PIMAGE_IMPORT_DESCRIPTOR imports = (PIMAGE_IMPORT_DESCRIPTOR)(base + dataDir->VirtualAddress);
-			for (DWORD idx = 0; imports->Name; ++idx, ++imports)
-			{
-				CHAR* libraryName = (CHAR*)(base + imports->Name);
-
-				PIMAGE_THUNK_DATA addressThunk = (PIMAGE_THUNK_DATA)(base + imports->FirstThunk);
-				PIMAGE_THUNK_DATA nameThunk;
-				if (imports->OriginalFirstThunk)
-					nameThunk = (PIMAGE_THUNK_DATA)(base + imports->OriginalFirstThunk);
-				else
-				{
-					if (!file->address)
-					{
-						file->Load();
-						if (!file->address)
-							return res;
-					}
-
-					headNT = (PIMAGE_NT_HEADERS)((BYTE*)file->address + ((PIMAGE_DOS_HEADER)file->address)->e_lfanew);
-					PIMAGE_SECTION_HEADER sh = (PIMAGE_SECTION_HEADER)((DWORD)&headNT->OptionalHeader + headNT->FileHeader.SizeOfOptionalHeader);
-
-					nameThunk = NULL;
-					DWORD sCount = headNT->FileHeader.NumberOfSections;
-					while (sCount--)
-					{
-						if (imports->FirstThunk >= sh->VirtualAddress && imports->FirstThunk < sh->VirtualAddress + sh->Misc.VirtualSize)
-						{
-							nameThunk = PIMAGE_THUNK_DATA((DWORD)file->address + sh->PointerToRawData + imports->FirstThunk - sh->VirtualAddress);
-							break;
-						}
-
-						++sh;
-					}
-
-					if (!nameThunk)
-						return res;
-				}
-
-				for (; nameThunk->u1.AddressOfData; ++nameThunk, ++addressThunk)
-				{
-					PIMAGE_IMPORT_BY_NAME name = PIMAGE_IMPORT_BY_NAME(base + nameThunk->u1.AddressOfData);
-
-					WORD hint;
-					if (ReadWord((INT)name, &hint) && !StrCompare((CHAR*)name->Name, function))
-					{
-						if (ReadDWord((INT)&addressThunk->u1.AddressOfData, &res))
-							PatchDWord((INT)&addressThunk->u1.AddressOfData, (DWORD)addr);
-
-						return res;
-					}
-				}
-			}
-		}
-
-		return res;
-	}
-
-	DWORD __fastcall PatchEntryPoint(const CHAR* library, VOID* entryPoint)
-	{
-		DWORD base = (DWORD)GetModuleHandle(library);
-		if (!base)
-			return FALSE;
-
-		PIMAGE_NT_HEADERS headNT = (PIMAGE_NT_HEADERS)((BYTE*)base + ((PIMAGE_DOS_HEADER)base)->e_lfanew);
-		return PatchHook(base + headNT->OptionalHeader.AddressOfEntryPoint, entryPoint);
-	}
-
-	DWORD __fastcall FindCodeBlockAddress(BYTE* block, DWORD size)
-	{
-		if (size)
-		{
-			HMODULE hModule = GetModuleHandle(NULL);
-			PIMAGE_NT_HEADERS headNT = (PIMAGE_NT_HEADERS)((BYTE*)hModule + ((PIMAGE_DOS_HEADER)hModule)->e_lfanew);
-
-			IMAGE_SECTION_HEADER* section = IMAGE_FIRST_SECTION(headNT);
-			for (DWORD idx = 0; idx < headNT->FileHeader.NumberOfSections; ++idx, ++section)
-			{
-				if (section->VirtualAddress == headNT->OptionalHeader.BaseOfCode)
-				{
-					if (section->Misc.VirtualSize)
-					{
-						BYTE* entry = (BYTE*)(headNT->OptionalHeader.ImageBase + section->VirtualAddress);
-						DWORD total = section->Misc.VirtualSize;
-						do
-						{
-							DWORD count = size;
-
-							BYTE* ptr1 = entry;
-							BYTE* ptr2 = block;
-
-							do
-								if (*ptr1++ != *ptr2++)
-									break;
-							while (--count);
-
-							if (!count)
-								return (DWORD)entry;
-
-							++entry;
-						} while (--total);
-					}
-					return NULL;
-				}
-			}
-		}
-
-		return NULL;
-	}
-
-	// =====================================================================================================
-
 	MCISENDCOMMANDA MciSendCommandOld;
 	MCIGETERRORSTRINGA MciGetErrorStringOld;
 
@@ -386,8 +156,7 @@ namespace Hooks
 
 		switch (uMsg)
 		{
-		case MCI_OPEN:
-		{
+		case MCI_OPEN: {
 			LPMCI_OPEN_PARMS params = (LPMCI_OPEN_PARMS)dwParam2;
 			if (!StrCompare(params->lpstrDeviceType, "AVIVideo"))
 			{
@@ -422,8 +191,7 @@ namespace Hooks
 			break;
 		}
 
-		case MCI_CLOSE:
-		{
+		case MCI_CLOSE: {
 			if (mciVideo.deviceId == mciId)
 			{
 				mciVideo.error = mcierr = MciSendCommand(mciList[mciId - 1], uMsg, dwParam1, dwParam2);
@@ -440,8 +208,7 @@ namespace Hooks
 			break;
 		}
 
-		case MCI_PUT:
-		{
+		case MCI_PUT: {
 			if (mciVideo.deviceId == mciId)
 			{
 				if (dwParam1 & MCI_OVLY_PUT_DESTINATION)
@@ -464,8 +231,7 @@ namespace Hooks
 			break;
 		}
 
-		default:
-		{
+		default: {
 			if (mciVideo.deviceId == mciId)
 				mciVideo.error = mcierr = MciSendCommand(mciList[mciId - 1], uMsg, dwParam1, dwParam2);
 			else
@@ -545,6 +311,19 @@ namespace Hooks
 
 	BOOL __stdcall FakeEntryPoint(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved) { return TRUE; }
 
+	VOID __fastcall RedirectLibrary(const CHAR* name)
+	{
+		HMODULE hLib = GetModuleHandle(name);
+		if (hLib)
+		{
+			HOOKER hooker = CreateHooker(hLib);
+			{
+				PatchEntry(hooker, FakeEntryPoint);
+			}
+			ReleaseHooker(hooker);
+		}
+	}
+
 	DOUBLE flush;
 #define SYNC_STEP (1000.0 / 85.0)
 	VOID __fastcall FlipPage()
@@ -586,60 +365,56 @@ namespace Hooks
 
 	VOID Load()
 	{
-		HMODULE hModule = GetModuleHandle(NULL);
-		PIMAGE_NT_HEADERS headNT = (PIMAGE_NT_HEADERS)((BYTE*)hModule + ((PIMAGE_DOS_HEADER)hModule)->e_lfanew);
-		baseOffset = (INT)hModule - (INT)headNT->OptionalHeader.ImageBase;
-
-		PatchEntryPoint("DDRAW.dll", FakeEntryPoint);
-		PatchEntryPoint("MDRAW.dll", FakeEntryPoint);
+		RedirectLibrary("DDRAW.dll");
+		RedirectLibrary("MDRAW.dll");
 
 		HMODULE hLib = LoadLibrary("DPWSOCKX.dll");
 		if (hLib)
 		{
-			MappedFile* file = new MappedFile(hLib);
+			HOOKER hooker = CreateHooker(hLib);
 			{
-				Hooks::PatchFunction(file, "gdwDPlaySPRefCount", (VOID*)pGdwDPlaySPRefCount);
+				PatchImportByName(hooker, "gdwDPlaySPRefCount", (VOID*)pGdwDPlaySPRefCount);
 			}
-			delete file;
+			ReleaseHooker(hooker);
 		}
 
-		MappedFile* file = new MappedFile(hModule);
+		HOOKER hooker = CreateHooker(GetModuleHandle(NULL));
 		{
-			PatchFunction(file, "DirectDrawCreate", Main::DirectDrawCreate);
+			PatchImportByName(hooker, "DirectDrawCreate", Main::DirectDrawCreate);
 
-			PatchFunction(file, "LoadLibraryA", LoadLibraryHook);
-			PatchFunction(file, "FreeLibrary", FreeLibraryHook);
-			PatchFunction(file, "GetProcAddress", GetProcAddressHook);
+			PatchImportByName(hooker, "LoadLibraryA", LoadLibraryHook);
+			PatchImportByName(hooker, "FreeLibrary", FreeLibraryHook);
+			PatchImportByName(hooker, "GetProcAddress", GetProcAddressHook);
 
-			PatchFunction(file, "RegisterClassA", RegisterClassHook);
-			PatchFunction(file, "CreateWindowExA", CreateWindowExHook);
+			PatchImportByName(hooker, "RegisterClassA", RegisterClassHook);
+			PatchImportByName(hooker, "CreateWindowExA", CreateWindowExHook);
 
-			PatchFunction(file, "ClipCursor", ClipCursorHook);
-			PatchFunction(file, "ShowCursor", ShowCursorHook);
-			PatchFunction(file, "SetCursor", SetCursorHook);
-			PatchFunction(file, "SetCursorPos", SetCursorPosHook);
+			PatchImportByName(hooker, "ClipCursor", ClipCursorHook);
+			PatchImportByName(hooker, "ShowCursor", ShowCursorHook);
+			PatchImportByName(hooker, "SetCursor", SetCursorHook);
+			PatchImportByName(hooker, "SetCursorPos", SetCursorPosHook);
 
-			PatchFunction(file, "MessageBoxA", MessageBoxHook);
-			PatchFunction(file, "ClientToScreen", ClientToScreenHook);
+			PatchImportByName(hooker, "MessageBoxA", MessageBoxHook);
+			PatchImportByName(hooker, "ClientToScreen", ClientToScreenHook);
 
-			PatchFunction(file, "PeekMessageA", PeekMessageHook);
-			PatchFunction(file, "GetTickCount", timeGetTime);
+			PatchImportByName(hooker, "PeekMessageA", PeekMessageHook);
+			PatchImportByName(hooker, "GetTickCount", timeGetTime);
 
-			MciSendCommandOld = (MCISENDCOMMANDA)PatchFunction(file, "mciSendCommandA", mciSendCommandHook);
-			MciGetErrorStringOld = (MCIGETERRORSTRINGA)PatchFunction(file, "mciGetErrorStringA", mciGetErrorStringHook);
+			PatchImportByName(hooker, "mciSendCommandA", mciSendCommandHook, (DWORD*)&MciSendCommandOld);
+			PatchImportByName(hooker, "mciGetErrorStringA", mciGetErrorStringHook, (DWORD*)&MciGetErrorStringOld);
+
+			// Flip Page
+			const BYTE flipBlock[] = { 0x8B, 0x4D, 0xCC, 0xF3, 0xA5, 0x03, 0x75, 0xD0, 0x03, 0x7D, 0xD4, 0x48 };
+			DWORD address = FindBlock(hooker, (VOID*)flipBlock, sizeof(flipBlock));
+			if (address)
+				PatchCall(hooker, address - baseOffset, FlipPageHook, sizeof(flipBlock) + 2 - 5);
+
+			// ============================
+
+			DWORD val;
+			if (ReadDWord(hooker, 0x02D8D02E, &val) && val == 0x006355B8) // HEW mod SKIDROW
+				PatchHook(hooker, 0x02D8D025, (VOID*)val);
 		}
-		delete file;
-		
-		// Flip Page
-		const BYTE flipBlock[] = { 0x8B, 0x4D, 0xCC, 0xF3, 0xA5, 0x03, 0x75, 0xD0, 0x03, 0x7D, 0xD4, 0x48 };
-		DWORD address = FindCodeBlockAddress((BYTE*)flipBlock, sizeof(flipBlock));
-		if (address)
-			PatchCall(address - baseOffset, FlipPageHook, sizeof(flipBlock) + 2 - 5);
-
-		// ============================
-
-		DWORD val;
-		if (ReadDWord(0x02D8D02E, &val) && val == 0x006355B8) // HEW mod SKIDROW
-			PatchHook(0x02D8D025, (VOID*)val);
+		ReleaseHooker(hooker);
 	}
 }

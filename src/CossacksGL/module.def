@@ -5,9 +5,9 @@ EXPORTS
 	DirectPlayEnumerateW		= ?exDirectPlayEnumerateW@@YGXXZ		@3			PRIVATE
 	DirectPlayLobbyCreateA		= ?exDirectPlayLobbyCreateA@@YGXXZ		@4			PRIVATE
 	DirectPlayLobbyCreateW		= ?exDirectPlayLobbyCreateW@@YGXXZ		@5			PRIVATE
-	DllCanUnloadNow				= ?exDllCanUnloadNow@@YGXXZ				@6			PRIVATE
-	DllGetClassObject			= ?exDllGetClassObject@@YGXXZ			@7			PRIVATE
-	DllRegisterServer			= ?exDllRegisterServer@@YGXXZ			@8			PRIVATE
+	DllCanUnloadNow				= ?exDllCanUnloadNow@@YGXXZ							PRIVATE
+	DllGetClassObject			= ?exDllGetClassObject@@YGXXZ						PRIVATE
+	DllRegisterServer			= ?exDllRegisterServer@@YGXXZ						PRIVATE
 	DirectPlayEnumerate			= ?exDirectPlayEnumerate@@YGXXZ			@9			PRIVATE
-	DllUnregisterServer			= ?exDllUnregisterServer@@YGXXZ			@10			PRIVATE
+	DllUnregisterServer			= ?exDllUnregisterServer@@YGXXZ						PRIVATE
 	gdwDPlaySPRefCount			= ?exGdwDPlaySPRefCount@@3KA			@11			PRIVATE

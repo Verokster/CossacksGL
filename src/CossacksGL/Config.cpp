@@ -23,6 +23,7 @@
 */
 
 #include "stdafx.h"
+#include "intrin.h"
 #include "Config.h"
 #include "Resource.h"
 
@@ -86,6 +87,7 @@ namespace Config
 			config.windowedMode = TRUE;
 			Config::Set(CONFIG, "WindowedMode", config.windowedMode);
 
+			config.vSync = TRUE;
 			Config::Set(CONFIG, "VSync", config.vSync);
 
 			config.filtering = TRUE;
@@ -97,19 +99,28 @@ namespace Config
 			config.mouseCapture = TRUE;
 			Config::Set(CONFIG, "MouseCapture", config.mouseCapture);
 
-			config.updateMode = UpdateCPP;
+			config.updateMode = UpdateSSE;
 			Config::Set(CONFIG, "UpdateMode", (INT)config.updateMode);
 		}
 		else
 		{
 			config.windowedMode = (BOOL)Config::Get(CONFIG, "WindowedMode", TRUE);
-			config.vSync = (BOOL)Config::Get(CONFIG, "VSync", FALSE);
+			config.vSync = (BOOL)Config::Get(CONFIG, "VSync", TRUE);
 			config.filtering = (BOOL)Config::Get(CONFIG, "Filtering", TRUE);
 			config.aspectRatio = (BOOL)Config::Get(CONFIG, "AspectRatio", TRUE);
 			config.mouseCapture = (BOOL)Config::Get(CONFIG, "MouseCapture", TRUE);
 
-			config.updateMode = (UpdateMode)Config::Get(CONFIG, "UpdateMode", (INT)UpdateCPP);
+			config.updateMode = (UpdateMode)Config::Get(CONFIG, "UpdateMode", UpdateSSE);
 			if (config.updateMode < UpdateNone || config.updateMode > UpdateASM)
+				config.updateMode = UpdateSSE;
+		}
+
+		if (config.updateMode == UpdateSSE)
+		{
+			INT cpuinfo[4];
+			__cpuid(cpuinfo, 1);
+			BOOL isSSE2 = cpuinfo[3] & (1 << 26) || FALSE;
+			if (!isSSE2)
 				config.updateMode = UpdateCPP;
 		}
 

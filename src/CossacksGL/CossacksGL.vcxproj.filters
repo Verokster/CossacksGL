@@ -49,9 +49,6 @@
     <ClCompile Include="PixelBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="MappedFile.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -103,9 +100,6 @@
       <Filter>Header Files\Draw\Base</Filter>
     </ClInclude>
     <ClInclude Include="PixelBuffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="MappedFile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

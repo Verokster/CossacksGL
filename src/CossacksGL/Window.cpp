@@ -380,6 +380,13 @@ namespace Window
 			return CallWindowProc(OldWindowProc, hWnd, uMsg, wParam, lParam);
 		}
 
+		case WM_MOUSEWHEEL:
+		case WM_XBUTTONDOWN:
+		case WM_XBUTTONUP:
+		case WM_LBUTTONDBLCLK:
+		case WM_RBUTTONDBLCLK:
+		case WM_MBUTTONDBLCLK:
+		case WM_XBUTTONDBLCLK:
 		case WM_MOUSEMOVE: {
 			DirectDraw* ddraw = Main::FindDirectDrawByWindow(hWnd);
 			if (ddraw)
@@ -533,13 +540,20 @@ namespace Window
 	{
 		switch (uMsg)
 		{
+		case WM_MOUSEWHEEL:
 		case WM_MOUSEMOVE:
 		case WM_LBUTTONDOWN:
 		case WM_LBUTTONUP:
+		case WM_LBUTTONDBLCLK:
 		case WM_RBUTTONDOWN:
 		case WM_RBUTTONUP:
+		case WM_RBUTTONDBLCLK:
 		case WM_MBUTTONDOWN:
 		case WM_MBUTTONUP:
+		case WM_MBUTTONDBLCLK:
+		case WM_XBUTTONDOWN:
+		case WM_XBUTTONUP:
+		case WM_XBUTTONDBLCLK:
 		case WM_SYSCOMMAND:
 		case WM_SYSKEYDOWN:
 		case WM_SYSKEYUP:
